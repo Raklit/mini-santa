@@ -1,0 +1,15 @@
+[package]
+name = "mini-santa"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "^0.8.1", features = ["http2"]}
+tokio = { version = "1", features = ["full"] }
+tracing = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"]}
+tower-http = { version = "0.6.2", features = ["trace", "fs"] }
+tera = { version = "1.20" }
+duckdb = { version = "1.2.1"}
+serde = { version = "1.0", features = ["derive"]}
+toml = { version = "0.8.2"}
