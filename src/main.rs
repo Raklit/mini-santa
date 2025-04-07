@@ -85,7 +85,6 @@ async fn main() {
     let mut context = Context::new();
     context.insert("word", "ho-ho");
 
-
     let state = AppState {
         tera: tera,
         context: context

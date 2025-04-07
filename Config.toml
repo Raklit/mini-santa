@@ -3,9 +3,5 @@ config_secret = "secret"
 log_path = "./logs/activity.log"
 
 [database]
-host = "localhost"
-port = 3306
-db_name = "santa"
-user = ""
-password = ""
+db_file = "./db/database.db"
 connection_number = 256
