@@ -9,18 +9,21 @@ use axum:: {
     response::Html
 };
 
+use sqlx::{Pool, SqlitePool};
 use tracing_subscriber::{filter, prelude::*};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
-use tower_http::trace::{DefaultOnResponse,DefaultMakeSpan,TraceLayer};
+use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
 use tracing::Level;
 use tower_http::services::ServeDir;
 use tera::{Tera, Context};
+use sqlx::{migrate::MigrateDatabase, Sqlite, Row};
 
 #[derive(Clone)]
 struct AppState {
     tera : Tera,
-    context : Context
+    context : Context,
+    db : SqlitePool
 }
 
 async fn index(State(state) : State<AppState>) -> Html<String> {
@@ -38,7 +41,7 @@ async fn index(State(state) : State<AppState>) -> Html<String> {
 async fn main() {
 
     const CONFIG_PATH : &str = "./Config.toml";
-    let raw_config = fs::read_to_string(CONFIG_PATH).expect("Cant read config file");
+    let raw_config = fs::read_to_string(CONFIG_PATH).expect("Can't read config file");
     let app_config : AppConfig = toml::from_str(raw_config.as_str()).unwrap();
     
     // enable logging
@@ -85,9 +88,22 @@ async fn main() {
     let mut context = Context::new();
     context.insert("word", "ho-ho");
 
+
+    let db_url = format!("sqlite://{}", &app_config.database.db_file);
+    if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
+        let _ = Sqlite::create_database(&db_url).await;
+    }
+
+    let db = SqlitePool::connect(&db_url).await.unwrap();
+
+    let result = sqlx::query("SELECT 1 as id;").fetch_one(&db).await.unwrap();
+    let val : u8 = result.get(0);
+    tracing::info!("{}", &val);
+
     let state = AppState {
         tera: tera,
-        context: context
+        context: context,
+        db: db
     };
 
 
