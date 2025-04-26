@@ -1,10 +1,13 @@
+use serde::{Deserialize, Serialize};
+
 use crate::core::data_model::traits::{IAccount, ILocalObject};
 
+#[derive(Serialize, Deserialize)]
 pub struct Account {
-    id : String,
-    login : String,
-    password_hash : String,
-    password_salt : String
+    pub id : String,
+    pub login : String,
+    pub password_hash : String,
+    pub password_salt : String
 }
 
 impl ILocalObject for Account {

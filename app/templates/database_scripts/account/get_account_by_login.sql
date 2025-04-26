@@ -1,0 +1,1 @@
+SELECT id, login, password_hash, password_salt FROM accounts WHERE login = '{{login}}';

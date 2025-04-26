@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM accounts WHERE id = '{{id}}') AS row_exists;

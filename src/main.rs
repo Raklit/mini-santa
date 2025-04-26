@@ -1,6 +1,7 @@
 mod core;
 
 use crate::core::config::AppConfig;
+use crate::core::data_model::traits::IAccount;
 
 use axum:: {
     routing::get,
@@ -11,6 +12,11 @@ use axum:: {
 
 use sqlx::{Pool, SqlitePool};
 use tracing_subscriber::{filter, prelude::*};
+use uuid::Uuid;
+use core::data_model::implementations::Account;
+use core::data_model::traits::ILocalObject;
+use core::functions::init_database;
+use core::services::{create_account, get_account_by_login, set_account_password};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
@@ -75,7 +81,7 @@ async fn main() {
 
     // enable tera templates
 
-    let mut tera = match Tera::new("./app/templates/**/*.html") {
+    let mut tera = match Tera::new("./app/templates/**/*") {
         Ok(t) => t,
         Err(e) => {
             tracing::error!("Parsing error(s): {}", e);
@@ -96,16 +102,21 @@ async fn main() {
 
     let db = SqlitePool::connect(&db_url).await.unwrap();
 
-    let result = sqlx::query("SELECT 1 as id;").fetch_one(&db).await.unwrap();
-    let val : u8 = result.get(0);
-    tracing::info!("{}", &val);
-
     let state = AppState {
         tera: tera,
         context: context,
         db: db
     };
 
+    init_database(&state).await;
+    
+    create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
+
+    let account = get_account_by_login("admin", &state).await;
+    tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
+    set_account_password(account.id(), "password", &state).await;
+    let account = get_account_by_login("admin", &state).await;
+    tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
 
     let app = Router::new()
         .route("/", get(index))
