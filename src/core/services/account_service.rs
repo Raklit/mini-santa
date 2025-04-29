@@ -103,6 +103,6 @@ pub async fn delete_account_by_id(id : &str, state : &AppState) -> () {
 pub async fn delete_account_by_login(login : &str, state : &AppState) -> () {
     const DELETE_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/delete_account_by_login.sql";
     let mut context = tera::Context::new();
-    context.insert("id", &login);
+    context.insert("login", &login);
     execute_script_template_wo_return(DELETE_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
 }
