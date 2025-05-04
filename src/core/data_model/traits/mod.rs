@@ -2,6 +2,7 @@ mod local_object;
 mod account_related;
 
 mod account;
+mod account_session;
 mod message;
 mod room;
 mod public_user_info;
@@ -11,6 +12,7 @@ pub use local_object::ILocalObject;
 pub use account_related::IAccountRelated;
 
 pub use account::IAccount;
+pub use account_session::IAccountSession;
 pub use message::IMessage;
 pub use room::IRoom;
 pub use public_user_info::IPublicUserInfo;

@@ -1,0 +1,1 @@
+DELETE FROM account_sessions WHERE account_id = '{{account_id}}';

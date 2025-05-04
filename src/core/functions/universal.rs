@@ -6,6 +6,15 @@ use sqlx::Executor;
 
 use crate::AppState;
 
+pub fn generate_random_token() -> String {
+    const TOKEN_LEN : usize = 64;
+    let rng = rand::SystemRandom::new();
+    let mut token = [0u8; TOKEN_LEN];
+    let _ = rng.fill(&mut token);
+    let result = BASE64URL.encode(&token);
+    return result;
+}
+
 pub fn hash_password(password : &str) -> [String; 2] {
     const CREDENTIAL_LEN : usize = digest::SHA512_OUTPUT_LEN;
     let rng = rand::SystemRandom::new();

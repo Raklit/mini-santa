@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM account_sessions WHERE id = '{{id}}') AS row_exists;

@@ -1,3 +1,5 @@
+use chrono::prelude::*;
+
 use crate::core::data_model::traits::{ILocalObject, IMessage};
 
 pub struct Message {
@@ -22,7 +24,7 @@ impl IMessage for Message {
 
     fn is_send_by_mailer(&self) -> bool { self.is_send_by_mailer }
 
-    fn date(&self) -> chrono::DateTime<chrono::Utc> { self.date }
+    fn date(&self) -> DateTime<Utc> { self.date }
 
     fn set_text(&mut self, text : &str) -> () { self.text = String::from(text) }
 
@@ -30,6 +32,6 @@ impl IMessage for Message {
 
     fn set_is_send_by_mailer(&mut self, value : bool) -> () { self.is_send_by_mailer = value }
 
-    fn set_date(&mut self, date : chrono::DateTime<chrono::Utc>) -> () { self.date = date }
+    fn set_date(&mut self, date : DateTime<Utc>) -> () { self.date = date }
     
 }

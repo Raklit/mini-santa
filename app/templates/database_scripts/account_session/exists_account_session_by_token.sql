@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM account_sessions WHERE auth_token = '{{token}}' OR refresh_token = '{{token}}') AS row_exists;
