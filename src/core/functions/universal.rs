@@ -32,6 +32,24 @@ pub fn hash_password(password : &str) -> [String; 2] {
     return result;
 }
 
+pub fn validate_hash(plain_password : &str, password_salt : &str, hashed_password : &str) -> bool {
+    const CREDENTIAL_LEN : usize = digest::SHA512_OUTPUT_LEN;
+    
+    let pwd_salt_vec  = BASE64URL.decode(&password_salt.as_bytes()).unwrap();
+    let pwd_salt = pwd_salt_vec.as_slice();
+    let n_iter = NonZeroU32::new(100_000).unwrap();
+    
+    let mut hash_for_validate = [0u8; CREDENTIAL_LEN];
+    pbkdf2::derive(
+        pbkdf2::PBKDF2_HMAC_SHA512, n_iter, 
+        pwd_salt, &plain_password.as_bytes(), 
+        &mut hash_for_validate
+    );
+    let str_for_validate = BASE64URL.encode(&hash_for_validate);
+
+    return hashed_password == str_for_validate;
+}
+
 pub fn render_query_template(template_name : &str, context : &tera::Context, state : &AppState) -> String {
     // merge current and global contexts into one
     let mut extended_context = tera::Context::new();
