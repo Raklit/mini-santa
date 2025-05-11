@@ -1,0 +1,1 @@
+DELETE FROM clients WHERE client_name = '{{client_name}}';

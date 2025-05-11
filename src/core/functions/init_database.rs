@@ -6,6 +6,12 @@ async fn create_account_table(state : &AppState) -> () {
     execute_script_template_wo_return(CREATE_ACCOUNT_TABLE_TEMPLATE, &context, &state).await;
 }
 
+async fn create_client_table(state : &AppState) -> () {
+    const CREATE_CLIENT_TABLE_TEMPLATE: &str = "database_scripts/tables/create_client_table.sql";
+    let context = tera::Context::new();
+    execute_script_template_wo_return(CREATE_CLIENT_TABLE_TEMPLATE, &context, &state).await;
+}
+
 async fn create_account_session_table(state : &AppState) -> () {
     const CREATE_ACCOUNT_SESSION_TABLE_TEMPLATE: &str = "database_scripts/tables/create_account_session_table.sql";
     let context = tera::Context::new();
@@ -14,5 +20,6 @@ async fn create_account_session_table(state : &AppState) -> () {
 
 pub async fn init_database(state : &AppState) -> () {
     create_account_table(&state).await;
+    create_client_table(&state).await;
     create_account_session_table(&state).await;
 }

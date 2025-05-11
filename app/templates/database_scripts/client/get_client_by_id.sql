@@ -1,0 +1,1 @@
+SELECT id, client_name, password_hash, password_salt FROM clients WHERE id = '{{id}}';

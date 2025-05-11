@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM clients WHERE id = '{{id}}' OR client_name = '{{client_name}}') AS row_exists;

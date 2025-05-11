@@ -2,6 +2,7 @@ mod local_object;
 mod account_related;
 
 mod account;
+mod client;
 mod account_session;
 mod room;
 mod message;
@@ -12,6 +13,7 @@ pub use local_object::LocalObject;
 pub use account_related::AccountRelated;
 
 pub use account::Account;
+pub use client::Client;
 pub use account_session::AccountSession;
 pub use room::Room;
 pub use message::Message;

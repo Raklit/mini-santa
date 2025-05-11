@@ -15,39 +15,33 @@ pub fn generate_random_token() -> String {
     return result;
 }
 
+pub fn hash_password_with_salt(password : &str, salt : &str) -> String {
+    const CREDENTIAL_LEN : usize = digest::SHA512_OUTPUT_LEN;
+    let n_iter = NonZeroU32::new(100_000).unwrap();
+    
+    let salt_bytes_vec = BASE64URL.decode(&salt.as_bytes()).unwrap();
+    let salt_bytes = salt_bytes_vec.as_slice();
+    let mut pwd_hash = [0u8; CREDENTIAL_LEN];
+    pbkdf2::derive(
+        pbkdf2::PBKDF2_HMAC_SHA512, n_iter, 
+        &salt_bytes, password.as_bytes(),
+        &mut pwd_hash
+    );
+    return BASE64URL.encode(&pwd_hash);
+}
+
 pub fn hash_password(password : &str) -> [String; 2] {
     const CREDENTIAL_LEN : usize = digest::SHA512_OUTPUT_LEN;
     let rng = rand::SystemRandom::new();
     let mut pwd_salt = [0u8; CREDENTIAL_LEN];
     let _ = rng.fill(&mut pwd_salt);
-
-    let n_iter = NonZeroU32::new(100_000).unwrap();
-    let mut pwd_hash = [0u8; CREDENTIAL_LEN];
-    pbkdf2::derive(
-        pbkdf2::PBKDF2_HMAC_SHA512, n_iter, 
-        &pwd_salt, password.as_bytes(),
-         &mut pwd_hash
-    );
-    let result = [BASE64URL.encode(&pwd_hash), BASE64URL.encode(&pwd_salt)];
-    return result;
+    let encoded_salt = BASE64URL.encode(&pwd_salt);
+    return [hash_password_with_salt(&password, &encoded_salt), encoded_salt];
 }
 
 pub fn validate_hash(plain_password : &str, password_salt : &str, hashed_password : &str) -> bool {
-    const CREDENTIAL_LEN : usize = digest::SHA512_OUTPUT_LEN;
-    
-    let pwd_salt_vec  = BASE64URL.decode(&password_salt.as_bytes()).unwrap();
-    let pwd_salt = pwd_salt_vec.as_slice();
-    let n_iter = NonZeroU32::new(100_000).unwrap();
-    
-    let mut hash_for_validate = [0u8; CREDENTIAL_LEN];
-    pbkdf2::derive(
-        pbkdf2::PBKDF2_HMAC_SHA512, n_iter, 
-        pwd_salt, &plain_password.as_bytes(), 
-        &mut hash_for_validate
-    );
-    let str_for_validate = BASE64URL.encode(&hash_for_validate);
-
-    return hashed_password == str_for_validate;
+    let hash_for_validate = hash_password_with_salt(plain_password, password_salt);
+    return hash_for_validate == hashed_password;
 }
 
 pub fn render_query_template(template_name : &str, context : &tera::Context, state : &AppState) -> String {
