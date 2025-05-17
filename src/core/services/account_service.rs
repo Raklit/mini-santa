@@ -19,6 +19,26 @@ fn row_to_account(row : &SqliteRow) -> Account {
     }
 }
 
+pub async fn is_account_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/exists_account_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_TEMPLATE, &context, &state);
+    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let val : u8 = result.get(0);
+    return val == 1;
+}
+
+pub async fn is_account_already_exists_by_login(login : &str, state : &AppState) -> bool {
+    const EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/exists_account_by_login.sql";
+    let mut context = tera::Context::new();
+    context.insert("login", &login);
+    let command = render_query_template(EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state);
+    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let val : u8 = result.get(0);
+    return val == 1;
+}
+
 pub async fn is_account_already_exists_by_id_or_login(id : &str, login : &str, state : &AppState) -> bool {
     const EXISTS_ACCOUNT_BY_ID_OR_LOGIN_TEMPLATE : &str = "database_scripts/account/exists_account_by_id_or_login.sql";
     let mut context = tera::Context::new();
@@ -45,33 +65,42 @@ pub async fn create_account(id : &str, login : &str, password : &str, state : &A
      context.insert("password_hash", &account.password_hash.as_str());
      context.insert("password_salt", &account.password_salt.as_str());
  
-     let account_exists = is_account_already_exists_by_id_or_login(&account.id.as_str(), &account.login.as_str(), &state).await;
-     if !account_exists {
-         const CREATE_ACCOUNT_TEMPLATE : &str = "database_scripts/account/create_account.sql";
-         execute_script_template_wo_return(CREATE_ACCOUNT_TEMPLATE, &context, &state).await;
-     }
+    const CREATE_ACCOUNT_TEMPLATE : &str = "database_scripts/account/create_account.sql";
+    execute_script_template_wo_return(CREATE_ACCOUNT_TEMPLATE, &context, &state).await;
  }
 
-pub async fn get_account_by_id(id : &str, state : &AppState) -> impl IAccount {
+pub async fn get_account_by_id(id : &str, state : &AppState) -> Option<impl IAccount> {
     const GET_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/get_account_by_id.sql";
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
     let command = render_query_template(GET_ACCOUNT_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
-    
-    return row_to_account(&result);
+    let result = match state.db.fetch_optional(command.as_str()).await {
+        Ok(o) => o,
+        Err(_) => None
+    };
+    if result.is_some() {
+        return Some(row_to_account(&result.unwrap()));
+    } else {
+        return None;
+    }
 }
 
-pub async fn get_account_by_login(login : &str, state : &AppState) -> impl IAccount {
+pub async fn get_account_by_login(login : &str, state : &AppState) -> Option<impl IAccount> {
     const GET_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/get_account_by_login.sql";
     let mut context = tera::Context::new();
     context.insert("login", &login);
     
     let command = render_query_template(GET_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
-    
-    return row_to_account(&result);
+    let result = match state.db.fetch_optional(command.as_str()).await {
+        Ok(o) => o,
+        Err(_) => None
+    };
+    if result.is_some() {
+        return Some(row_to_account(&result.unwrap()));
+    } else {
+        return None;
+    }
 }
 
 pub async fn set_account_login(id : &str, login : &str, state : &AppState) -> () {

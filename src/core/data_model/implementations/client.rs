@@ -21,7 +21,7 @@ impl IClient for Client {
 
     fn password_hash(&self) -> &str { self.password_hash.as_str() }
 
-    fn passwrod_salt(&self) -> &str { self.password_salt.as_str() }
+    fn password_salt(&self) -> &str { self.password_salt.as_str() }
 
     fn set_client_name(&mut self, client_name : &str) -> () { self.client_name = String::from(client_name) }
 

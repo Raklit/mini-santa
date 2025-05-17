@@ -19,6 +19,26 @@ fn row_to_client(row : &SqliteRow) -> Client {
     }
 }
 
+pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/exists_client_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_CLIENT_BY_ID_TEMPLATE, &context, &state);
+    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let val : u8 = result.get(0);
+    return val == 1;
+}
+
+pub async fn is_client_already_exists_by_client_name(client_name : &str, state : &AppState) -> bool {
+    const EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/exists_client_by_client_name.sql";
+    let mut context = tera::Context::new();
+    context.insert("client_name", &client_name);
+    let command = render_query_template(EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state);
+    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let val : u8 = result.get(0);
+    return val == 1;
+}
+
 pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_name : &str, state : &AppState) -> bool {
     const EXISTS_CLIENT_BY_ID_OR_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/exists_client_by_id_or_client_name.sql";
     let mut context = tera::Context::new();
@@ -45,33 +65,42 @@ pub async fn create_client(id : &str, client_name : &str, password : &str, state
      context.insert("password_hash", &client.password_hash.as_str());
      context.insert("password_salt", &client.password_salt.as_str());
  
-     let client_exists = is_client_already_exists_by_id_or_client_name(&client.id.as_str(), &client.client_name.as_str(), &state).await;
-     if !client_exists {
-         const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
-         execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;
-     }
+     const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
+     execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;
  }
 
-pub async fn get_client_by_id(id : &str, state : &AppState) -> impl IClient {
+pub async fn get_client_by_id(id : &str, state : &AppState) -> Option<impl IClient> {
     const GET_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/get_client_by_id.sql";
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
     let command = render_query_template(GET_CLIENT_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
-    
-    return row_to_client(&result);
+    let result = match state.db.fetch_optional(command.as_str()).await {
+        Ok(o) => o,
+        Err(_) => None
+    };
+    if result.is_some() {
+        return Some(row_to_client(&result.unwrap()));
+    } else {
+        return None;
+    }
 }
 
-pub async fn get_client_by_client_name(client_name : &str, state : &AppState) -> impl IClient {
+pub async fn get_client_by_client_name(client_name : &str, state : &AppState) -> Option<impl IClient> {
     const GET_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/get_client_by_client_name.sql";
     let mut context = tera::Context::new();
     context.insert("client_name", &client_name);
     
     let command = render_query_template(GET_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
-    
-    return row_to_client(&result);
+    let result = match state.db.fetch_optional(command.as_str()).await {
+        Ok(o) => o,
+        Err(_) => None
+    };
+    if result.is_some() {
+        return Some(row_to_client(&result.unwrap()));
+    } else {
+        return None;
+    }
 }
 
 pub async fn set_client_name(id : &str, client_name : &str, state : &AppState) -> () {

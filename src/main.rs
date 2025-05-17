@@ -16,7 +16,7 @@ use uuid::Uuid;
 use core::data_model::implementations::Account;
 use core::data_model::traits::ILocalObject;
 use core::functions::init_database;
-use core::services::{create_account, get_account_by_login, set_account_password};
+use core::services::{create_account, get_account_by_login, is_account_already_exists_by_login, set_account_password};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
@@ -110,12 +110,15 @@ async fn main() {
 
     init_database(&state).await;
     
-    create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
-
-    let account = get_account_by_login("admin", &state).await;
+    let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
+    if !is_admin_exists {
+        create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
+    }
+    
+    let account = get_account_by_login("admin", &state).await.unwrap();
     tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
     set_account_password(account.id(), "password", &state).await;
-    let account = get_account_by_login("admin", &state).await;
+    let account = get_account_by_login("admin", &state).await.unwrap();
     tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
 
     let app = Router::new()
