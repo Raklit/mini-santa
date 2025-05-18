@@ -70,7 +70,7 @@ pub async fn create_account_session(id : &str, account_id : &str, state : &AppSt
     let mut refresh_token : String;
     loop {
         refresh_token = generate_random_token();
-        let is_account_session_already_exists =  is_account_session_already_exists_by_token(&&refresh_token.as_str(), &state).await;
+        let is_account_session_already_exists =  is_account_session_already_exists_by_token(refresh_token.as_str(), &state).await;
         if !is_account_session_already_exists { break; }
     }
 

@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS account_sessions (
     id VARCHAR(36) PRIMARY KEY,
-    account_id VARCHAR(36) PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
     auth_token VARCHAR(256) NOT NULL,
     refresh_token VARCHAR(256) NOT NULL,
     is_active BOOLEAN NOT NULL,

@@ -109,7 +109,7 @@ async fn main() {
     };
 
     init_database(&state).await;
-    
+    //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
     if !is_admin_exists {
         create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
