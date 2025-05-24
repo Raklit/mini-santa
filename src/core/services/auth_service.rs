@@ -46,7 +46,6 @@ pub async fn get_account_by_token(token : &str, client_id : &str, client_secret 
 
 pub async fn sign_in_by_user_creditials(username : &str, password : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
     let account = get_account_by_user_creditials(username, password, client_id, client_secret, state).await;
-    let account_id = account.as_ref().unwrap().id();
     if account.is_none() { return None; }
     let result = create_account_session_safe(account.unwrap().id(), &state).await;
     return result;
