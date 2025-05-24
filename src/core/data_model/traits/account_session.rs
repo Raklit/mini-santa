@@ -15,10 +15,6 @@ pub trait IAccountSession : IAccountRelated {
 
     fn last_usage_date(&self) -> DateTime<Utc>;
 
-    fn is_active(&self) -> bool;
-
-    fn is_ended(&self) -> bool;
-
     fn set_auth_token(&mut self, auth_token : &str) -> ();
 
     fn set_refresh_token(&mut self, refresh_token : &str) -> ();
@@ -30,8 +26,4 @@ pub trait IAccountSession : IAccountRelated {
     fn set_start_date(&mut self, start_date : DateTime<Utc>) -> ();
 
     fn set_last_usage_date(&mut self, last_usage_date : DateTime<Utc>) -> ();
-
-    fn set_active(&mut self, is_active : bool) -> ();
-
-    fn set_ended(&mut self, is_ended : bool) -> ();
 }

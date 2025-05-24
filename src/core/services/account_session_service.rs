@@ -3,7 +3,6 @@ use std::str::FromStr;
 use chrono::prelude::*;
 use sqlx::{Row, Executor};
 use sqlx::sqlite::SqliteRow;
-use tracing_subscriber::filter::combinator::Not;
 
 use crate::core::data_model::implementations::AccountSession;
 use crate::core::data_model::traits::IAccountSession;
@@ -15,8 +14,6 @@ fn row_to_account_session(row : &SqliteRow) -> AccountSession {
     let account_id : &str = row.get("account_id");
     let auth_token : &str = row.get("auth_token");
     let refresh_token : &str = row.get("refresh_token");
-    let is_active : bool = row.get("is_active");
-    let is_ended : bool = row.get("is_ended");
 
     let start_date_str : &str = row.get("start_date");
     let auth_token_creation_date_str : &str = row.get("auth_token_creation_date");
@@ -28,8 +25,6 @@ fn row_to_account_session(row : &SqliteRow) -> AccountSession {
         account_id: String::from(account_id),
         auth_token: String::from(auth_token), 
         refresh_token: String::from(refresh_token),
-        is_active: is_active,
-        is_ended: is_ended, 
         start_date: DateTime::from_str(&start_date_str).unwrap(), 
         auth_token_creation_date: DateTime::from_str(&auth_token_creation_date_str).unwrap(),
         refresh_token_creation_date: DateTime::from_str(&refresh_token_creation_date_str).unwrap(),
@@ -44,16 +39,20 @@ pub async fn is_account_session_already_exists_by_id(id : &str, state : &AppStat
     let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state);
     let result = state.db.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
+    
     return val == 1;
 }
 
 pub async fn is_account_session_already_exists_by_token(token : &str, state : &AppState) -> bool {
     const EXISTS_ACCOUNT_SESSION_BY_TOKEN_TEMPLATE : &str = "database_scripts/account_session/exists_account_session_by_token.sql";
+    
     let mut context = tera::Context::new();
     context.insert("token", &token);
+    
     let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_TOKEN_TEMPLATE, &context, &state);
     let result = state.db.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
+    
     return val == 1;
 }
 
@@ -80,8 +79,6 @@ pub async fn create_account_session(id : &str, account_id : &str, state : &AppSt
         account_id: String::from(account_id),
         auth_token: auth_token,
         refresh_token: refresh_token,
-        is_active: true,
-        is_ended: false,
         start_date: creation_date.clone(),
         auth_token_creation_date: creation_date.clone(),
         refresh_token_creation_date: creation_date.clone(),
@@ -93,8 +90,6 @@ pub async fn create_account_session(id : &str, account_id : &str, state : &AppSt
      context.insert("account_id", &account_session.account_id.as_str());
      context.insert("auth_token", &account_session.auth_token.as_str());
      context.insert("refresh_token", &account_session.refresh_token.as_str());
-     context.insert("is_active", &account_session.is_active);
-     context.insert("is_ended", &account_session.is_ended);
      context.insert("start_date", &account_session.start_date.to_rfc3339());
      context.insert("auth_token_creation_date", &account_session.auth_token_creation_date.to_rfc3339());
      context.insert("refresh_token_creation_date", &account_session.refresh_token_creation_date.to_rfc3339());
@@ -106,6 +101,7 @@ pub async fn create_account_session(id : &str, account_id : &str, state : &AppSt
 
 pub async fn get_account_session_by_id(id : &str, state : &AppState) -> Option<impl IAccountSession> {
     const GET_ACCOUNT_SESSION_BY_ID_TEMPLATE : &str = "database_scripts/account_session/get_account_session_by_id.sql";
+    
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
@@ -123,6 +119,7 @@ pub async fn get_account_session_by_id(id : &str, state : &AppState) -> Option<i
 
 pub async fn get_account_session_by_token(token : &str, state : &AppState) -> Option<impl IAccountSession> {
     const GET_ACCOUNT_SESSION_BY_TOKEN_TEMPLATE : &str = "database_scripts/account_session/get_account_session_by_token.sql";
+    
     let mut context = tera::Context::new();
     context.insert("token", &token);
     
@@ -146,6 +143,7 @@ pub async fn update_account_session_auth_token_by_id(id : &str, auth_token : &st
     context.insert("id", &id);
     context.insert("auth_token", &auth_token);
     context.insert("now", &now_time.to_rfc3339());
+
     execute_script_template_wo_return(UPDATE_ACCOUNT_SESSION_AUTH_TOKEN_TEMPLATE, &context, &state).await;
 }
 
@@ -157,16 +155,46 @@ pub async fn update_account_session_refresh_token_by_id(id : &str, refresh_token
     context.insert("id", &id);
     context.insert("refresh_token", &refresh_token);
     context.insert("now", &now_time.to_rfc3339());
+
     execute_script_template_wo_return(UPDATE_ACCOUNT_SESSION_REFRESH_TOKEN_TEMPLATE, &context, &state).await;
 }
 
-pub async fn delete_account_session_by_id(id : &str, state : &AppState) -> impl IAccountSession {
+pub async fn update_account_session_last_usage_date_by_id(id : &str, state : &AppState) -> () {
+    const UPDATE_ACCOUNT_SESSION_LAST_USAGE_DATE_BY_ID_TEMPLATE : &str = "database_scripts/account_session/update_account_session_last_usage_date_by_id.sql";
+    let now_time = Utc::now();
+    
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    context.insert("now", &now_time.to_rfc3339());
+
+    execute_script_template_wo_return(UPDATE_ACCOUNT_SESSION_LAST_USAGE_DATE_BY_ID_TEMPLATE, &context, &state).await;
+}
+
+pub async fn update_account_session_last_usage_date_by_token(token : &str, state : &AppState) -> () {
+    const UPDATE_ACCOUNT_SESSION_LAST_USAGE_DATE_BY_TOKEN_TEMPLATE : &str = "database_scripts/account_session/update_account_session_last_usage_date_by_token.sql";
+    let now_time = Utc::now();
+    
+    let mut context = tera::Context::new();
+    context.insert("token", &token);
+    context.insert("now", &now_time.to_rfc3339());
+
+    execute_script_template_wo_return(UPDATE_ACCOUNT_SESSION_LAST_USAGE_DATE_BY_TOKEN_TEMPLATE, &context, &state).await;
+}
+
+pub async fn delete_account_session_by_id(id : &str, state : &AppState) -> () {
     const DELETE_ACCOUNT_SESSION_BY_ID_TEMPLATE : &str = "database_scripts/account_session/delete_account_session_by_id.sql";
+    
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
-    let command = render_query_template(DELETE_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    execute_script_template_wo_return(DELETE_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, state).await;
+}
+
+pub async fn delete_account_session_by_account_id(account_id : &str, state : &AppState) -> () {
+    const DELETE_ACCOUNT_SESSION_BY_ACCOUNT_ID_TEMPLATE : &str = "database_scripts/account_session/delete_account_session_by_account_id.sql";
     
-    return row_to_account_session(&result);
+    let mut context = tera::Context::new();
+    context.insert("account_id", &account_id);
+    
+    execute_script_template_wo_return(DELETE_ACCOUNT_SESSION_BY_ACCOUNT_ID_TEMPLATE, &context, state).await;
 }

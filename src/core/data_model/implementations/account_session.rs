@@ -9,8 +9,6 @@ pub struct AccountSession {
     pub account_id : String,
     pub auth_token : String,
     pub refresh_token : String,
-    pub is_active : bool,
-    pub is_ended : bool,
     pub start_date : DateTime<Utc>,
     pub auth_token_creation_date : DateTime<Utc>,
     pub refresh_token_creation_date : DateTime<Utc>,
@@ -42,10 +40,6 @@ impl IAccountSession for AccountSession {
 
     fn last_usage_date(&self) -> chrono::DateTime<chrono::Utc> { self.last_usage_date }
 
-    fn is_active(&self) -> bool { self.is_active }
-
-    fn is_ended(&self) -> bool { self.is_ended }
-
     fn set_auth_token(&mut self, auth_token : &str) -> () { self.auth_token = String::from(auth_token) }
 
     fn set_refresh_token(&mut self, refresh_token : &str) -> () { self.refresh_token = String::from(refresh_token) }
@@ -57,8 +51,4 @@ impl IAccountSession for AccountSession {
     fn set_start_date(&mut self, start_date : DateTime<Utc>) -> () { self.start_date = start_date }
 
     fn set_last_usage_date(&mut self, last_usage_date : DateTime<Utc>) -> () { self.last_usage_date = last_usage_date }
-
-    fn set_active(&mut self, is_active : bool) -> () { self.is_active = is_active }
-
-    fn set_ended(&mut self, is_ended : bool) -> () { self.is_ended = is_ended }
 }

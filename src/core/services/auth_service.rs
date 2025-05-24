@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
-use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IClient, ILocalObject}, functions::{hash_password, validate_hash}}, AppState};
+use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IClient, ILocalObject}, functions::validate_hash}, AppState};
 
-use super::{create_account_session, get_account_by_id, get_account_by_login, get_account_session_by_id, get_account_session_by_token, get_client_by_client_name, is_account_already_exists_by_id, is_account_already_exists_by_login, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, is_client_already_exists_by_client_name};
+use super::{create_account_session, delete_account_session_by_account_id, delete_account_session_by_id, get_account_by_id, get_account_by_login, get_account_session_by_id, get_account_session_by_token, get_client_by_client_name, is_account_session_already_exists_by_id, update_account_session_last_usage_date_by_token};
 
 async fn create_account_session_safe(account_id : &str, state : &AppState) -> Option<impl IAccountSession> {
     
@@ -45,13 +45,22 @@ pub async fn get_account_by_token(token : &str, client_id : &str, client_secret 
 }
 
 pub async fn sign_in_by_user_creditials(username : &str, password : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
-    let account = get_account_by_user_creditials(username, password, client_id, client_secret, &state).await;
+    let account = get_account_by_user_creditials(username, password, client_id, client_secret, state).await;
     if account.is_none() { return None; }
     return create_account_session_safe(account.unwrap().id(), &state).await;
 }
 
 pub async fn sign_in_by_token(token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
-    let account = get_account_by_token(token, client_id, client_secret, &state).await;
+    let account = get_account_by_token(token, client_id, client_secret, state).await;
     if account.is_none() { return None; }
-    return create_account_session_safe(account.unwrap().id(), &state).await;
+    update_account_session_last_usage_date_by_token(token, state).await;
+    return get_account_session_by_token(token, &state).await;
+}
+
+pub async fn sign_out(id : &str, state : &AppState) -> () {
+    delete_account_session_by_id(id, &state).await;
+}
+
+pub async fn sign_out_from_all(account_id : &str, state : &AppState) -> () {
+    delete_account_session_by_account_id(account_id, &state).await;
 }
