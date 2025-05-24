@@ -41,6 +41,7 @@ pub fn hash_password(password : &str) -> [String; 2] {
 
 pub fn validate_hash(plain_password : &str, password_salt : &str, hashed_password : &str) -> bool {
     let hash_for_validate = hash_password_with_salt(plain_password, password_salt);
+    let result = hash_for_validate == hashed_password;
     return hash_for_validate == hashed_password;
 }
 

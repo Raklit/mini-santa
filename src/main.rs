@@ -13,10 +13,11 @@ use axum:: {
 use sqlx::{Pool, SqlitePool};
 use tracing_subscriber::{filter, prelude::*};
 use uuid::Uuid;
+use core::controllers::{healthcheck, sign_in};
 use core::data_model::implementations::Account;
 use core::data_model::traits::ILocalObject;
 use core::functions::init_database;
-use core::services::{create_account, get_account_by_login, is_account_already_exists_by_login, set_account_password};
+use core::services::{create_account, create_client, get_account_by_login, is_account_already_exists_by_login, is_client_already_exists_by_client_name, set_account_password};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
@@ -114,15 +115,20 @@ async fn main() {
     if !is_admin_exists {
         create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
     }
-    
+
+    let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
+    if !is_client_already_exists {
+        create_client(Uuid::new_v4().to_string().as_str(), "api", "qwerty", &state).await;
+    }
+
     let account = get_account_by_login("admin", &state).await.unwrap();
     tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
-    set_account_password(account.id(), "password", &state).await;
-    let account = get_account_by_login("admin", &state).await.unwrap();
-    tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
+    // END TODO
 
     let app = Router::new()
         .route("/", get(index))
+        .route("/api/healthcheck", get(healthcheck))
+        .route("/oauth/token", get(sign_in))
         .with_state(state)
         .nest_service("/static", ServeDir::new("./app/static"))
         .layer(
