@@ -37,8 +37,6 @@ pub async fn get_account_by_user_creditials(username : &str, password : &str, cl
 }
 
 pub async fn get_account_by_token(token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccount> {
-    let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
-    if !is_client_valid { return None; }
     let account_session = get_account_session_by_token(token, &state).await;
     if account_session.is_none() { return None; }
     return get_account_by_id(account_session.unwrap().account_id(), &state).await;
@@ -47,13 +45,12 @@ pub async fn get_account_by_token(token : &str, client_id : &str, client_secret 
 pub async fn sign_in_by_user_creditials(username : &str, password : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
     let account = get_account_by_user_creditials(username, password, client_id, client_secret, state).await;
     if account.is_none() { return None; }
-    let result = create_account_session_safe(account.unwrap().id(), &state).await;
-    return result;
+    return create_account_session_safe(account.unwrap().id(), &state).await;
 }
 
 pub async fn sign_in_by_token(token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
-    let account = get_account_by_token(token, client_id, client_secret, state).await;
-    if account.is_none() { return None; }
+    let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
+    if !is_client_valid { return None; }
     update_account_session_last_usage_date_by_token(token, &state).await;
     return get_account_session_by_token(token, &state).await;
 }
