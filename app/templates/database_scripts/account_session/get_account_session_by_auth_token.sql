@@ -3,4 +3,4 @@ SELECT id, account_id,
     start_date,
     auth_token_creation_date, refresh_token_creation_date,
     last_usage_date
-FROM account_sessions WHERE auth_token = '{{token}}' OR refresh_token = '{{token}}';
+FROM account_sessions WHERE auth_token = '{{auth_token}}';
