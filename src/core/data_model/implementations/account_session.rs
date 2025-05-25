@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +30,8 @@ impl IAccountRelated for AccountSession {
 }
 
 impl IAccountSession for AccountSession {
+    fn as_any(&self) -> &dyn Any { return self; }
+
     fn auth_token(&self) -> &str { self.auth_token.as_str() }
 
     fn refresh_token(&self) -> &str { self.refresh_token.as_str() }

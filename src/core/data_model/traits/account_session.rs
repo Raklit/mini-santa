@@ -1,8 +1,12 @@
+use std::any::Any;
+
 use chrono::prelude::*;
 
 use super::IAccountRelated;
 
 pub trait IAccountSession : IAccountRelated {
+    fn as_any(&self) -> &dyn Any;
+    
     fn auth_token(&self) -> &str;
 
     fn refresh_token(&self) -> &str;
