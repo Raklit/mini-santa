@@ -3,6 +3,7 @@ mod account_related;
 
 mod account;
 mod client;
+mod auth_code;
 mod account_session;
 mod message;
 mod room;
@@ -14,6 +15,7 @@ pub use account_related::IAccountRelated;
 
 pub use account::IAccount;
 pub use client::IClient;
+pub use auth_code::IAuthCode;
 pub use account_session::IAccountSession;
 pub use message::IMessage;
 pub use room::IRoom;
