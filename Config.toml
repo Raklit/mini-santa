@@ -5,3 +5,8 @@ log_path = "./logs/activity.log"
 [database]
 db_file = "./db/database.db"
 connection_number = 256
+
+[auth]
+auth_token_lifetime = 900
+refresh_token_lifetime = 86400
+auth_code_lifetime = 300
