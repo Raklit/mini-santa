@@ -1,5 +1,5 @@
-mod account_controller;
-mod healthcheck_controller;
+mod oauth_controller;
+mod api_controller;
 
-pub use account_controller::*;
-pub use healthcheck_controller::*;
+pub use oauth_controller::*;
+pub use api_controller::*;

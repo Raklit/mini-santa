@@ -1,6 +1,8 @@
 mod core;
 
-use crate::core::config::AppConfig;
+use crate::core::backround_tasks::delete_old_account_sessions;
+use crate::core::config::{AppConfig, AuthConfig};
+use crate::core::controllers::{api_router, auth_router};
 use crate::core::data_model::traits::IAccount;
 
 use axum:: {
@@ -10,16 +12,17 @@ use axum:: {
     response::Html
 };
 
-use sqlx::{Pool, SqlitePool};
+use sqlx::{SqlitePool};
+use tokio::sync::{Mutex, MutexGuard};
+use tokio::task;
 use tracing_subscriber::{filter, prelude::*};
 use uuid::Uuid;
-use core::controllers::{healthcheck, sign_in};
-use core::data_model::implementations::Account;
 use core::data_model::traits::ILocalObject;
 use core::functions::init_database;
 use core::services::{create_account, create_client, get_account_by_login, is_account_already_exists_by_login, is_client_already_exists_by_client_name, set_account_password};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
 use tracing::Level;
 use tower_http::services::ServeDir;
@@ -28,13 +31,40 @@ use sqlx::{migrate::MigrateDatabase, Sqlite, Row};
 
 #[derive(Clone)]
 struct AppState {
-    tera : Tera,
-    context : Context,
-    db : SqlitePool
+    tera : Arc<Mutex<Tera>>,
+    context : Arc<Mutex<Context>>,
+    db : Arc<Mutex<SqlitePool>>,
+    config: Arc<Mutex<AppConfig>>
+}
+
+async fn run_background_tasks(state : &AppState) -> () {
+    delete_old_account_sessions(state).await;
+}
+
+async fn run_server(state : &AppState) {
+    let app = Router::new()
+        .route("/", get(index))
+        .nest("/api", api_router())
+        .nest("/oauth", auth_router())
+        .with_state(state.clone())
+        .nest_service("/static", ServeDir::new("./app/static"))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO))
+        );
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    tracing::info!("listening on {}", addr);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap()
 }
 
 async fn index(State(state) : State<AppState>) -> Html<String> {
-    let temp = match state.tera.render("index.html", &(state.context)) {
+    let mut new_context = tera::Context::new();
+    new_context.extend(state.context.lock().await.clone());
+    let temp = match state.tera.lock().await.render("index.html", &new_context) {
         Ok(s) => Html(s),
         Err(e) => {
             tracing::error!("Parsing error(s): {}", e);
@@ -104,12 +134,14 @@ async fn main() {
     let db = SqlitePool::connect(&db_url).await.unwrap();
 
     let state = AppState {
-        tera: tera,
-        context: context,
-        db: db
+        tera: Arc::new(Mutex::new(tera)),
+        context: Arc::new(Mutex::new(context)),
+        db: Arc::new(Mutex::new(db)),
+        config: Arc::new(Mutex::new(app_config))
     };
 
     init_database(&state).await;
+
     //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
     if !is_admin_exists {
@@ -120,26 +152,12 @@ async fn main() {
     if !is_client_already_exists {
         create_client(Uuid::new_v4().to_string().as_str(), "api", "qwerty", &state).await;
     }
-
-    let account = get_account_by_login("admin", &state).await.unwrap();
-    tracing::info!("{}, {}, {}", account.id(), account.password_hash(), account.passwrod_salt());
     // END TODO
 
-    let app = Router::new()
-        .route("/", get(index))
-        .route("/api/healthcheck", get(healthcheck))
-        .route("/oauth/token", get(sign_in))
-        .with_state(state)
-        .nest_service("/static", ServeDir::new("./app/static"))
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-                .on_response(DefaultOnResponse::new().level(Level::INFO))
-        );
+    // start threads
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    tracing::info!("listening on {}", addr);
+    let state_clone = state.clone();
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    tokio::spawn(async move { run_background_tasks(&state_clone).await });
+    run_server(&state).await;
 }

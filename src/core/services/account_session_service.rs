@@ -36,8 +36,9 @@ pub async fn is_account_session_already_exists_by_id(id : &str, state : &AppStat
     const EXISTS_ACCOUNT_SESSION_BY_ID_TEMPLATE : &str = "database_scripts/account_session/exists_account_session_by_id.sql";
     let mut context = tera::Context::new();
     context.insert("id", &id);
-    let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     
     return val == 1;
@@ -49,8 +50,9 @@ pub async fn is_account_session_already_exists_by_token(token : &str, state : &A
     let mut context = tera::Context::new();
     context.insert("token", &token);
     
-    let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_TOKEN_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_ACCOUNT_SESSION_BY_TOKEN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     
     return val == 1;
@@ -79,8 +81,9 @@ pub async fn get_account_session_by_id(id : &str, state : &AppState) -> Option<i
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
-    let command = render_query_template(GET_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_ACCOUNT_SESSION_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };
@@ -97,8 +100,9 @@ pub async fn get_account_session_by_auth_token(auth_token : &str, state : &AppSt
     let mut context = tera::Context::new();
     context.insert("auth_token", &auth_token);
     
-    let command = render_query_template(GET_ACCOUNT_SESSION_BY_AUTH_TOKEN_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_ACCOUNT_SESSION_BY_AUTH_TOKEN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };
@@ -115,8 +119,9 @@ pub async fn get_account_session_by_refresh_token(refresh_token : &str, state : 
     let mut context = tera::Context::new();
     context.insert("refresh_token", &refresh_token);
     
-    let command = render_query_template(GET_ACCOUNT_SESSION_BY_REFRESH_TOKEN_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_ACCOUNT_SESSION_BY_REFRESH_TOKEN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };
@@ -179,3 +184,15 @@ pub async fn delete_account_session_by_account_id(account_id : &str, state : &Ap
     
     execute_script_template_wo_return(DELETE_ACCOUNT_SESSION_BY_ACCOUNT_ID_TEMPLATE, &context, state).await;
 }
+
+pub async fn delete_account_sessions_with_expiried_refresh_tokens(state : &AppState) -> () {
+    const DELETE_ACCOUNT_SESSIONS_WITH_EXPIRIED_REFRESH_TOKENS_TEMPLATE : &str = "database_scripts/account_session/delete_account_sessions_with_expiried_refresh_tokens.sql";
+    let now_time = Utc::now();
+
+    let mut context = tera::Context::new();
+    context.insert("lifetime", &state.config.lock().await.auth.check_session_status_freq);
+    context.insert("now", &now_time.to_rfc3339());
+    
+    execute_script_template_wo_return(DELETE_ACCOUNT_SESSIONS_WITH_EXPIRIED_REFRESH_TOKENS_TEMPLATE, &context, &state).await;
+}
+

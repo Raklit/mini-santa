@@ -23,8 +23,9 @@ pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> boo
     const EXISTS_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/exists_client_by_id.sql";
     let mut context = tera::Context::new();
     context.insert("id", &id);
-    let command = render_query_template(EXISTS_CLIENT_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_CLIENT_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -33,8 +34,9 @@ pub async fn is_client_already_exists_by_client_name(client_name : &str, state :
     const EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/exists_client_by_client_name.sql";
     let mut context = tera::Context::new();
     context.insert("client_name", &client_name);
-    let command = render_query_template(EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -44,8 +46,9 @@ pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_nam
     let mut context = tera::Context::new();
     context.insert("id", &id);
     context.insert("cliennt_name", &client_name);
-    let command = render_query_template(EXISTS_CLIENT_BY_ID_OR_CLIENT_NAME_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_CLIENT_BY_ID_OR_CLIENT_NAME_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -74,8 +77,9 @@ pub async fn get_client_by_id(id : &str, state : &AppState) -> Option<impl IClie
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
-    let command = render_query_template(GET_CLIENT_BY_ID_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_CLIENT_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };
@@ -91,8 +95,9 @@ pub async fn get_client_by_client_name(client_name : &str, state : &AppState) ->
     let mut context = tera::Context::new();
     context.insert("client_name", &client_name);
     
-    let command = render_query_template(GET_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };

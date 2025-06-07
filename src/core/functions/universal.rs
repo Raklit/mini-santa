@@ -11,7 +11,7 @@ pub fn generate_random_token() -> String {
     let rng = rand::SystemRandom::new();
     let mut token = [0u8; TOKEN_LEN];
     let _ = rng.fill(&mut token);
-    return BASE64URL.encode(&token);
+    return BASE64URL.encode(&token).replace("=", "");
 }
 
 pub fn hash_password_with_salt(password : &str, salt : &str) -> String {
@@ -43,17 +43,17 @@ pub fn validate_hash(plain_password : &str, password_salt : &str, hashed_passwor
     return hash_for_validate == hashed_password;
 }
 
-pub fn render_query_template(template_name : &str, context : &tera::Context, state : &AppState) -> String {
+pub async fn render_query_template(template_name : &str, context : &tera::Context, state : &AppState) -> String {
     // merge current and global contexts into one
     let mut extended_context = tera::Context::new();
     extended_context.extend(context.clone());
-    extended_context.extend((&state.context).clone());
+    extended_context.extend(state.context.lock().await.clone());
 
     // get sql query from temaplate and extended context
-    return state.tera.render(template_name, &extended_context).unwrap();
+    return state.tera.lock().await.render(template_name, &extended_context).unwrap();
 }
 
 pub async fn execute_script_template_wo_return(template_name : &str, context : &tera::Context, state : &AppState)  -> () {
-    let create_account_table_command = render_query_template(&template_name, &context, &state);
-    state.db.execute(create_account_table_command.as_str()).await.unwrap();
+    let create_account_table_command = render_query_template(&template_name, &context, &state).await;
+    state.db.lock().await.execute(create_account_table_command.as_str()).await.unwrap();
 }

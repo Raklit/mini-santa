@@ -23,8 +23,9 @@ pub async fn is_account_already_exists_by_id(id : &str, state : &AppState) -> bo
     const EXISTS_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/exists_account_by_id.sql";
     let mut context = tera::Context::new();
     context.insert("id", &id);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -33,8 +34,9 @@ pub async fn is_account_already_exists_by_login(login : &str, state : &AppState)
     const EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/exists_account_by_login.sql";
     let mut context = tera::Context::new();
     context.insert("login", &login);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -44,8 +46,9 @@ pub async fn is_account_already_exists_by_id_or_login(id : &str, login : &str, s
     let mut context = tera::Context::new();
     context.insert("id", &id);
     context.insert("login", &login);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_OR_LOGIN_TEMPLATE, &context, &state);
-    let result = state.db.fetch_one(command.as_str()).await.unwrap();
+    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_OR_LOGIN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command.as_str()).await.unwrap();
     let val : u8 = result.get(0);
     return val == 1;
 }
@@ -74,8 +77,9 @@ pub async fn get_account_by_id(id : &str, state : &AppState) -> Option<impl IAcc
     let mut context = tera::Context::new();
     context.insert("id", &id);
     
-    let command = render_query_template(GET_ACCOUNT_BY_ID_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_ACCOUNT_BY_ID_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };
@@ -91,8 +95,9 @@ pub async fn get_account_by_login(login : &str, state : &AppState) -> Option<imp
     let mut context = tera::Context::new();
     context.insert("login", &login);
     
-    let command = render_query_template(GET_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state);
-    let result = match state.db.fetch_optional(command.as_str()).await {
+    let command = render_query_template(GET_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command.as_str()).await {
         Ok(o) => o,
         Err(_) => None
     };

@@ -5,7 +5,7 @@ use super::database_config::DatabaseConfig;
 use super::auth_config::AuthConfig;
 
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct AppConfig {
     pub server : ServerConfig,
     pub database : DatabaseConfig,
