@@ -69,9 +69,7 @@ pub async fn sign_in_by_refresh_token(refresh_token : &str, client_id : &str, cl
     return get_account_session_by_refresh_token(new_refresh_token.as_str(), &state).await;
 }
 
-pub async fn get_access_by_auth_token(auth_token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
-    let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
-    if !is_client_valid { return None; }
+pub async fn get_access_by_auth_token(auth_token : &str, state : &AppState) -> Option<impl IAccountSession> {
     update_account_session_last_usage_date_by_token(auth_token, &state).await;
     return get_account_session_by_auth_token(auth_token, &state).await;
 }

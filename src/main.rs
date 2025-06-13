@@ -44,7 +44,7 @@ async fn run_background_tasks(state : &AppState) -> () {
 async fn run_server(state : &AppState) {
     let app = Router::new()
         .route("/", get(index))
-        .nest("/api", api_router())
+        .nest("/api", api_router(state.clone()))
         .nest("/oauth", auth_router())
         .with_state(state.clone())
         .nest_service("/static", ServeDir::new("./app/static"))
