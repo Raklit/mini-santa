@@ -4,10 +4,10 @@ use crate::core::data_model::traits::{IClient, ILocalObject};
 
 #[derive(Serialize, Deserialize)]
 pub struct Client {
-    pub id : String,
-    pub client_name : String,
-    pub password_hash : String,
-    pub password_salt : String
+    id : String,
+    client_name : String,
+    password_hash : String,
+    password_salt : String
 }
 
 impl ILocalObject for Client {
@@ -17,6 +17,16 @@ impl ILocalObject for Client {
 }
 
 impl IClient for Client {
+
+    fn new(id : &str, client_name : &str, password_hash : &str, password_salt : &str) -> Client {
+        return Client {
+            id: String::from(id),
+            client_name: String::from(client_name),
+            password_hash: String::from(password_hash),
+            password_salt: String::from(password_salt)
+        };
+    }
+
     fn client_name(&self) -> &str { self.client_name.as_str() }
 
     fn password_hash(&self) -> &str { self.password_hash.as_str() }

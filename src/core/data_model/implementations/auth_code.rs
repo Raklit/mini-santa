@@ -22,6 +22,17 @@ impl IAccountRelated for AuthCode {
 }
 
 impl IAuthCode for AuthCode {
+
+    fn new(id : &str, account_id : &str, code : &str) -> Self {
+        let now_time = Utc::now();
+        return AuthCode {
+            id: String::from(id),
+            account_id: String::from(account_id),
+            code: String::from(code),
+            creation_date : now_time
+        };
+    }
+
     fn code(&self) -> &str { self.code.as_str() }
 
     fn creation_date(&self) -> DateTime<Utc> { self.creation_date }

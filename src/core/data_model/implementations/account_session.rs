@@ -7,14 +7,14 @@ use crate::core::data_model::traits::{IAccountSession, IAccountRelated, ILocalOb
 
 #[derive(Serialize, Deserialize)]
 pub struct AccountSession {
-    pub id : String,
-    pub account_id : String,
-    pub auth_token : String,
-    pub refresh_token : String,
-    pub start_date : DateTime<Utc>,
-    pub auth_token_creation_date : DateTime<Utc>,
-    pub refresh_token_creation_date : DateTime<Utc>,
-    pub last_usage_date : DateTime<Utc>
+    id : String,
+    account_id : String,
+    access_token : String,
+    refresh_token : String,
+    start_date : DateTime<Utc>,
+    access_token_creation_date : DateTime<Utc>,
+    refresh_token_creation_date : DateTime<Utc>,
+    last_usage_date : DateTime<Utc>
 }
 
 impl ILocalObject for AccountSession {
@@ -30,13 +30,25 @@ impl IAccountRelated for AccountSession {
 }
 
 impl IAccountSession for AccountSession {
-    fn as_any(&self) -> &dyn Any { return self; }
 
-    fn auth_token(&self) -> &str { self.auth_token.as_str() }
+    fn new(id : &str, account_id : &str, access_token : &str, refresh_token : &str, start_date : DateTime<Utc>, access_token_creation_date : DateTime<Utc>, refresh_token_creation_date : DateTime<Utc>, last_usage_date : DateTime<Utc>) -> Self {
+        return AccountSession {
+            id: String::from(id),
+            account_id: String::from(account_id),
+            access_token: String::from(access_token),
+            refresh_token: String::from(refresh_token),
+            start_date: start_date,
+            access_token_creation_date: access_token_creation_date,
+            refresh_token_creation_date: refresh_token_creation_date,
+            last_usage_date: last_usage_date,
+        };
+    }
+
+    fn access_token(&self) -> &str { self.access_token.as_str() }
 
     fn refresh_token(&self) -> &str { self.refresh_token.as_str() }
 
-    fn auth_token_creation_date(&self) -> DateTime<Utc> { self.auth_token_creation_date }
+    fn access_token_creation_date(&self) -> DateTime<Utc> { self.access_token_creation_date }
 
     fn refresh_token_creation_date(&self) -> DateTime<Utc> { self.refresh_token_creation_date }
 
@@ -44,11 +56,11 @@ impl IAccountSession for AccountSession {
 
     fn last_usage_date(&self) -> chrono::DateTime<chrono::Utc> { self.last_usage_date }
 
-    fn set_auth_token(&mut self, auth_token : &str) -> () { self.auth_token = String::from(auth_token) }
+    fn set_access_token(&mut self, access_token : &str) -> () { self.access_token = String::from(access_token) }
 
     fn set_refresh_token(&mut self, refresh_token : &str) -> () { self.refresh_token = String::from(refresh_token) }
 
-    fn set_auth_token_creation_date(&mut self, auth_token_creation_date : DateTime<Utc>) -> () { self.auth_token_creation_date = auth_token_creation_date }
+    fn set_access_token_creation_date(&mut self, access_token_creation_date : DateTime<Utc>) -> () { self.access_token_creation_date = access_token_creation_date }
 
     fn set_refresh_token_creation_date(&mut self, refresh_token_creation_date : DateTime<Utc>) -> () { self.refresh_token_creation_date = refresh_token_creation_date }
 

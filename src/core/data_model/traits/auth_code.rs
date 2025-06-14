@@ -3,6 +3,9 @@ use chrono::{DateTime, Utc};
 use super::IAccountRelated;
 
 pub trait IAuthCode : IAccountRelated {
+
+    fn new(id : &str, account_id : &str, code : &str) -> Self;
+
     fn code(&self) -> &str;
 
     fn creation_date(&self) -> DateTime<Utc>;

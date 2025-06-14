@@ -20,6 +20,16 @@ impl IAccountRelated for PublicUserInfo {
 }
 
 impl IPublicUserInfo for PublicUserInfo {
+
+    fn new(id : &str, account_id : &str, nickname : &str, info : &str) -> Self {
+        return PublicUserInfo {
+            id: String::from(id),
+            account_id: String::from(account_id),
+            nickname: String::from(nickname),
+            info: String::from(info)
+        };
+    }
+
     fn nickname(&self) -> &str { self.nickname.as_str() }
 
     fn info(&self) -> &str { self.info.as_str() }

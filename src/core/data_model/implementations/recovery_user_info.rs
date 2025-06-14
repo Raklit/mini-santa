@@ -22,6 +22,17 @@ impl IAccountRelated for RecoveryUserInfo {
 }
 
 impl IRecoveryUserInfo for RecoveryUserInfo {
+
+    fn new(id : &str, account_id : &str, email : &str, phone : &str, telegram : &str) -> Self {
+        return RecoveryUserInfo {
+            id: String::from(id),
+            account_id: String::from(account_id),
+            email: String::from(email),
+            phone: String::from(phone),
+            telegram: String::from(telegram),
+        };
+    }
+
     fn email(&self) -> &str { self.email.as_str() }
 
     fn phone(&self) -> &str { self.phone.as_str() }
@@ -33,4 +44,5 @@ impl IRecoveryUserInfo for RecoveryUserInfo {
     fn set_phone(&mut self, phone : &str) -> () { self.phone = String::from(phone) }
 
     fn set_telegram(&mut self, telegram : &str) -> () { self.telegram = String::from(telegram) }
+
 }

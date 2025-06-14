@@ -1,8 +1,9 @@
-use std::num::NonZeroU32;
+use std::{future::Future, num::NonZeroU32};
 
 use data_encoding::BASE64URL;
 use ring::{digest, pbkdf2, rand::{self, SecureRandom}};
 use sqlx::Executor;
+use uuid::Uuid;
 
 use crate::AppState;
 
@@ -56,4 +57,8 @@ pub async fn render_query_template(template_name : &str, context : &tera::Contex
 pub async fn execute_script_template_wo_return(template_name : &str, context : &tera::Context, state : &AppState)  -> () {
     let create_account_table_command = render_query_template(&template_name, &context, &state).await;
     state.db.lock().await.execute(create_account_table_command.as_str()).await.unwrap();
+}
+
+pub async fn generate_id() -> String {
+    return String::from(Uuid::new_v4());
 }

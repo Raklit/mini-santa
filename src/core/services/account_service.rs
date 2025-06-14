@@ -11,12 +11,7 @@ fn row_to_account(row : &SqliteRow) -> Account {
     let login : &str = row.get("login");
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
-    return Account {
-        id : String::from(id),
-        login : String::from(login),
-        password_hash : String::from(password_hash),
-        password_salt : String::from(password_salt)
-    }
+    return Account::new(id, login, password_hash, password_salt);
 }
 
 pub async fn is_account_already_exists_by_id(id : &str, state : &AppState) -> bool {
@@ -54,19 +49,13 @@ pub async fn is_account_already_exists_by_id_or_login(id : &str, login : &str, s
 }
 
 pub async fn create_account(id : &str, login : &str, password : &str, state : &AppState) -> () {
-    let hashed_password = hash_password(&password);
-    let account = Account {
-         id : String::from(id),
-         login : String::from(login),
-         password_hash : hashed_password[0].clone(),
-         password_salt : hashed_password[1].clone()
-     };
+    let [pwd_hash, pwd_salt] = hash_password(&password);
  
      let mut context = tera::Context::new();
-     context.insert("id", &account.id.as_str());
-     context.insert("login", &account.login.as_str());
-     context.insert("password_hash", &account.password_hash.as_str());
-     context.insert("password_salt", &account.password_salt.as_str());
+     context.insert("id", id);
+     context.insert("login", login);
+     context.insert("password_hash", pwd_hash.as_str());
+     context.insert("password_salt", pwd_salt.as_str());
  
     const CREATE_ACCOUNT_TEMPLATE : &str = "database_scripts/account/create_account.sql";
     execute_script_template_wo_return(CREATE_ACCOUNT_TEMPLATE, &context, &state).await;

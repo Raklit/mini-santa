@@ -11,12 +11,7 @@ fn row_to_client(row : &SqliteRow) -> Client {
     let client_name : &str = row.get("client_name");
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
-    return Client {
-        id : String::from(id),
-        client_name : String::from(client_name),
-        password_hash : String::from(password_hash),
-        password_salt : String::from(password_salt)
-    }
+    return Client::new(id, client_name, password_hash, password_salt);
 }
 
 pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
@@ -54,19 +49,13 @@ pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_nam
 }
 
 pub async fn create_client(id : &str, client_name : &str, password : &str, state : &AppState) -> () {
-    let hashed_password = hash_password(&password);
-    let client = Client {
-         id : String::from(id),
-         client_name : String::from(client_name),
-         password_hash : hashed_password[0].clone(),
-         password_salt : hashed_password[1].clone()
-     };
+    let [pwd_hash, pwd_salt] = hash_password(&password);
  
      let mut context = tera::Context::new();
-     context.insert("id", &client.id.as_str());
-     context.insert("client_name", &client.client_name.as_str());
-     context.insert("password_hash", &client.password_hash.as_str());
-     context.insert("password_salt", &client.password_salt.as_str());
+     context.insert("id", id);
+     context.insert("client_name", client_name);
+     context.insert("password_hash", pwd_hash.as_str());
+     context.insert("password_salt", pwd_salt.as_str());
  
      const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
      execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;

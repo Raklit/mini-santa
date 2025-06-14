@@ -1,17 +1,16 @@
-use std::any::Any;
-
 use chrono::prelude::*;
 
 use super::IAccountRelated;
 
 pub trait IAccountSession : IAccountRelated {
-    fn as_any(&self) -> &dyn Any;
-    
-    fn auth_token(&self) -> &str;
+
+    fn new(id : &str, account_id : &str, access_token : &str, refresh_token : &str, start_date : DateTime<Utc>, access_token_creation_date : DateTime<Utc>, refresh_token_creation_date : DateTime<Utc>, last_usage_date : DateTime<Utc>) -> Self;
+
+    fn access_token(&self) -> &str;
 
     fn refresh_token(&self) -> &str;
 
-    fn auth_token_creation_date(&self) -> DateTime<Utc>;
+    fn access_token_creation_date(&self) -> DateTime<Utc>;
 
     fn refresh_token_creation_date(&self) -> DateTime<Utc>;
 
@@ -19,11 +18,11 @@ pub trait IAccountSession : IAccountRelated {
 
     fn last_usage_date(&self) -> DateTime<Utc>;
 
-    fn set_auth_token(&mut self, auth_token : &str) -> ();
+    fn set_access_token(&mut self, access_token : &str) -> ();
 
     fn set_refresh_token(&mut self, refresh_token : &str) -> ();
 
-    fn set_auth_token_creation_date(&mut self, auth_token_creation_date : DateTime<Utc>) -> ();
+    fn set_access_token_creation_date(&mut self, access_token_creation_date : DateTime<Utc>) -> ();
 
     fn set_refresh_token_creation_date(&mut self, refresh_token_creation_date : DateTime<Utc>) -> ();
 

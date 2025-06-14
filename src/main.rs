@@ -1,9 +1,8 @@
 mod core;
 
 use crate::core::backround_tasks::delete_old_account_sessions;
-use crate::core::config::{AppConfig, AuthConfig};
+use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
-use crate::core::data_model::traits::IAccount;
 
 use axum:: {
     routing::get,
@@ -13,13 +12,13 @@ use axum:: {
 };
 
 use sqlx::{SqlitePool};
-use tokio::sync::{Mutex, MutexGuard};
-use tokio::task;
-use tracing_subscriber::{filter, prelude::*};
+use tokio::sync::Mutex;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{filter, Layer};
+use tracing_subscriber::layer::SubscriberExt;
 use uuid::Uuid;
-use core::data_model::traits::ILocalObject;
 use core::functions::init_database;
-use core::services::{create_account, create_client, get_account_by_login, is_account_already_exists_by_login, is_client_already_exists_by_client_name, set_account_password};
+use core::services::{create_account, create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -27,7 +26,7 @@ use tower_http::trace::{DefaultOnResponse, DefaultMakeSpan, TraceLayer};
 use tracing::Level;
 use tower_http::services::ServeDir;
 use tera::{Tera, Context};
-use sqlx::{migrate::MigrateDatabase, Sqlite, Row};
+use sqlx::{migrate::MigrateDatabase, Sqlite};
 
 #[derive(Clone)]
 struct AppState {
