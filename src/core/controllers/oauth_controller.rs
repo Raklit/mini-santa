@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use axum::{body::Body, extract::{Query, State}, http::{request, Request, StatusCode}, response::IntoResponse, Json};
-use axum_extra::{headers, TypedHeader};
+use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, Form, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, functions::generate_random_token, services::{create_account, sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
+use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
@@ -40,17 +39,31 @@ fn transform_account_session(account_session_option : Option<impl IAccountSessio
     return Some(result)
 }
 
-pub async fn sign_in(params: Query<HashMap<String, String>>, State(state) : State<AppState>) -> impl IntoResponse {
-    let grant_type = params.get("grant_type").map_or("", |v| v);
-    let client_id = params.get("client_id").map_or("", |v| v);
-    let client_secret = params.get("client_secret").map_or("", |v| v);
+#[derive(Deserialize)]
+pub struct SignInData {
+    pub grant_type : String,
+    pub client_id : String,
+    pub client_secret : String,
+    pub username : Option<String>,
+    pub password : Option<String>,
+    pub code : Option<String>,
+    pub refresh_token : Option<String>
+}
+
+pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<SignInData>) -> impl IntoResponse {
+    let grant_type = sign_in_data.grant_type.as_str();
+    let client_id = sign_in_data.client_id.as_str();
+    let client_secret = sign_in_data.client_secret.as_str();
     let mut account_session_option : Option<AccountSession> = None;
     if grant_type == "password" {
-        let username = params.get("username").map_or("", |v| v);
-        let password = params.get("password").map_or("", |v| v);
+        let username_string = sign_in_data.username.unwrap_or(String::new());
+        let username = username_string.as_str();
+        let password_string = sign_in_data.password.unwrap_or(String::new());
+        let password = password_string.as_str();
         account_session_option = transform_account_session(sign_in_by_user_creditials(username, password, client_id, client_secret, &state).await);
     } else if grant_type == "refresh_token" {
-        let refresh_token = params.get("refresh_token").map_or("", |v| v);
+        let refresh_token_string = sign_in_data.refresh_token.unwrap_or(String::new());
+        let refresh_token = refresh_token_string.as_str();
         account_session_option = transform_account_session(sign_in_by_refresh_token(refresh_token, client_id, client_secret, &state).await);
     }
 
@@ -71,7 +84,8 @@ pub async fn sign_in(params: Query<HashMap<String, String>>, State(state) : Stat
 }
 
 
-struct SignUpData {
+#[derive(Deserialize)]
+pub struct SignUpData {
     pub login : String,
     pub password : String,
     pub confirm_password : String,
@@ -79,14 +93,15 @@ struct SignUpData {
     pub email : String
 }
 
-/// TODO: NOT IMPLEMENTET YET
-pub async fn sign_up(State(state) : State<AppState>, request : Request<Body>) -> impl IntoResponse {
-    let login = request.headers().get("login").unwrap().to_str().unwrap();
-    let password = request.headers().get("password").unwrap().to_str().unwrap();
-    let confirm_password = request.headers().get("confirm_password").unwrap().to_str().unwrap();
-    let nickname= request.headers().get("nickname").unwrap().to_str().unwrap();
-    let email= request.headers().get("email").unwrap().to_str().unwrap();
-    
+/// TODO: ALMOST IMPLEMENTET (check validation data function)
+pub async fn sign_up(State(state) : State<AppState>, Form(sign_up_data) : Form<SignUpData>) -> impl IntoResponse {
+
+    let login = sign_up_data.login.as_str();
+    let password = sign_up_data.password.as_str();
+    let confirm_password = sign_up_data.confirm_password.as_str();
+    let nickname = sign_up_data.nickname.as_str();
+    let email = sign_up_data.email.as_str();
+
 
     let result = user_sign_up(login, password, confirm_password, nickname, email, &state).await;
     let data_valid = result.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });

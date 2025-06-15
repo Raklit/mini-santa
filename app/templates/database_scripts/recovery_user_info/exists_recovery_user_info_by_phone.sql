@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM recovery_user_infos WHERE phone = '{{phone}}') AS row_exists;

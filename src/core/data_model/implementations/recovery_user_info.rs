@@ -5,7 +5,6 @@ pub struct RecoveryUserInfo {
     account_id : String,
     email : String,
     phone : String,
-    telegram : String
 }
 
 impl ILocalObject for RecoveryUserInfo {
@@ -23,13 +22,12 @@ impl IAccountRelated for RecoveryUserInfo {
 
 impl IRecoveryUserInfo for RecoveryUserInfo {
 
-    fn new(id : &str, account_id : &str, email : &str, phone : &str, telegram : &str) -> Self {
+    fn new(id : &str, account_id : &str, email : &str, phone : &str) -> Self {
         return RecoveryUserInfo {
             id: String::from(id),
             account_id: String::from(account_id),
             email: String::from(email),
             phone: String::from(phone),
-            telegram: String::from(telegram),
         };
     }
 
@@ -37,12 +35,8 @@ impl IRecoveryUserInfo for RecoveryUserInfo {
 
     fn phone(&self) -> &str { self.phone.as_str() }
 
-    fn telegram(&self) -> &str { self.telegram.as_str() }
-
     fn set_email(&mut self, email : &str) -> () { self.email = String::from(email) }
 
     fn set_phone(&mut self, phone : &str) -> () { self.phone = String::from(phone) }
-
-    fn set_telegram(&mut self, telegram : &str) -> () { self.telegram = String::from(telegram) }
 
 }

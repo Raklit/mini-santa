@@ -47,7 +47,7 @@ async fn check_auth(State(state) : State<AppState>, AuthBearer(access_token) : A
 
 pub fn auth_router() -> Router<AppState> {
     return Router::new()
-    .route("/token", get(sign_in))
+    .route("/token", post(sign_in))
 }
 
 pub fn user_controller(state: AppState) -> Router<AppState> {
@@ -58,12 +58,11 @@ pub fn user_controller(state: AppState) -> Router<AppState> {
 
 
 // routers groups
-
 pub fn no_auth_api_router() -> Router<AppState> {
     return Router::new()
         .route("/hello", get(hello))
         .route("/ping", get(ping))
-        .route("/sign_up", post(sign_up))
+        .route("/sign_up", post(sign_up));
 }
 
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {

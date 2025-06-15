@@ -1,6 +1,7 @@
+use regex::Regex;
 use uuid::Uuid;
 
-use crate::{core::{data_model::traits::{IAccount, IAccountSession, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname}}, AppState};
+use crate::{core::{data_model::traits::{IAccount, IAccountSession, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id}}, AppState};
 
 use super::{create_account_session, delete_account_session_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
@@ -190,9 +191,18 @@ async fn is_nickname_valid(nickname : &str, state : &AppState) -> SignUpStatus {
     return SignUpStatus::OK;
 }
 
-/// TODO: NOT IMPLEMENTET YET
 async fn is_email_valid(email : &str, state : &AppState) -> SignUpStatus {
     if email.is_empty() { return SignUpStatus::EmailIsEmpty; }
+
+    // not RFC822, but it is hard because r"" instead of r''
+    const EMAIL_PATTERN : &str = r"^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$";
+    let re = Regex::new(EMAIL_PATTERN).unwrap();
+    let email_valid = re.is_match(email);
+    if !email_valid { return SignUpStatus::EmailIsInvalid; }
+    
+    let email_exists = is_recovery_user_info_already_exists_by_email(email, state).await;
+    if email_exists { return SignUpStatus::EmailAlreadyInUse; }
+    
     return SignUpStatus::OK;
 }
 
@@ -212,9 +222,17 @@ async fn create_user(login : &str, password : &str, nickname : &str, email : &st
         if !public_user_info_exists { break; }
     }
 
+    let mut recovery_user_info_id : String;
+    loop {
+        recovery_user_info_id = generate_id().await;
+        let recovery_user_info_exists = is_recovery_user_info_already_exists_by_id(recovery_user_info_id.as_str(), state).await;
+        if !recovery_user_info_exists { break; }
+    }
+
 
     create_account(account_id.as_str(), login, password, state).await;
     create_public_user_info(public_user_info_id.as_str(), account_id.as_str(), nickname, "", state).await;
+    create_recovery_user_info(recovery_user_info_id.as_str(), account_id.as_str(), email, "", state).await;
 }
 
 pub async fn user_sign_up(login : &str, password : &str, confirm_password : &str, nickname : &str, email : &str, state : &AppState) -> Vec<SignUpStatus> {
