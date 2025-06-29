@@ -1,8 +1,10 @@
 mod core;
 
-use crate::core::backround_tasks::delete_old_account_sessions;
+use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
+use crate::core::functions::generate_id;
+use crate::core::services::user_sign_up;
 
 use axum:: {
     routing::get,
@@ -16,9 +18,8 @@ use tokio::sync::Mutex;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{filter, Layer};
 use tracing_subscriber::layer::SubscriberExt;
-use uuid::Uuid;
 use core::functions::init_database;
-use core::services::{create_account, create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
+use core::services::{create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -38,6 +39,7 @@ struct AppState {
 
 async fn run_background_tasks(state : &AppState) -> () {
     delete_old_account_sessions(state).await;
+    delete_old_auth_codes(state).await;
 }
 
 async fn run_server(state : &AppState) {
@@ -144,12 +146,12 @@ async fn main() {
     //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
     if !is_admin_exists {
-        create_account(Uuid::new_v4().to_string().as_str(),"admin", "qwerty", &state).await;
+        user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", &state).await;
     }
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
     if !is_client_already_exists {
-        create_client(Uuid::new_v4().to_string().as_str(), "api", "qwerty", &state).await;
+        create_client(generate_id().await.as_str(), "api", "qwerty", &state).await;
     }
     // END TODO
 

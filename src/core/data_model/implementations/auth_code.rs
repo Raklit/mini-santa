@@ -23,13 +23,12 @@ impl IAccountRelated for AuthCode {
 
 impl IAuthCode for AuthCode {
 
-    fn new(id : &str, account_id : &str, code : &str) -> Self {
-        let now_time = Utc::now();
+    fn new(id : &str, account_id : &str, code : &str, creation_date : DateTime<Utc>) -> Self {
         return AuthCode {
             id: String::from(id),
             account_id: String::from(account_id),
             code: String::from(code),
-            creation_date : now_time
+            creation_date : creation_date
         };
     }
 

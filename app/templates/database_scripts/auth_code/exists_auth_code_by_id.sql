@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM auth_codes WHERE code = '{{code}}') AS row_exists;

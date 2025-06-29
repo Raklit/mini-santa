@@ -4,7 +4,7 @@ use super::IAccountRelated;
 
 pub trait IAuthCode : IAccountRelated {
 
-    fn new(id : &str, account_id : &str, code : &str) -> Self;
+    fn new(id : &str, account_id : &str, code : &str, creation_date : DateTime<Utc>) -> Self;
 
     fn code(&self) -> &str;
 

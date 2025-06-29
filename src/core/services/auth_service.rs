@@ -1,7 +1,9 @@
-use regex::Regex;
-use uuid::Uuid;
+use std::time::Duration;
 
-use crate::{core::{data_model::traits::{IAccount, IAccountSession, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id}}, AppState};
+use chrono::Utc;
+use regex::Regex;
+
+use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id}}, AppState};
 
 use super::{create_account_session, delete_account_session_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
@@ -25,14 +27,14 @@ pub async fn generate_tokens_unique_pair(state : &AppState) -> [String; 2] {
 
 async fn create_account_session_safe(account_id : &str, access_token : &str, refresh_token : &str, state : &AppState) -> Option<impl IAccountSession> {
     
-    let mut new_uuid : String;
+    let mut new_id : String;
     loop {
-        new_uuid = Uuid::new_v4().to_string();
-        let is_account_session_id_already_exists = is_account_session_already_exists_by_id(new_uuid.as_str(), &state).await;
+        new_id = generate_id().await;
+        let is_account_session_id_already_exists = is_account_session_already_exists_by_id(new_id.as_str(), &state).await;
         if !is_account_session_id_already_exists { break; }
     }
-    create_account_session(&new_uuid, &account_id, &access_token, &refresh_token, &state).await;
-    return get_account_session_by_id(&new_uuid.as_str(), &state).await;
+    create_account_session(&new_id, &account_id, &access_token, &refresh_token, &state).await;
+    return get_account_session_by_id(&new_id.as_str(), &state).await;
 }
 
 pub async fn is_client_valid(client_id : &str, client_secret : &str, state : &AppState) -> bool {
@@ -63,18 +65,64 @@ pub async fn sign_in_by_user_creditials(username : &str, password : &str, client
 }
 
 pub async fn sign_in_by_refresh_token(refresh_token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
+    let now_time = Utc::now();
     let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
     if !is_client_valid { return None; }
+    
     let [new_access_token, new_refresh_token] = generate_tokens_unique_pair(&state).await;
     update_account_session_tokens_by_refresh_token(refresh_token, new_access_token.as_str(), new_refresh_token.as_str(), &state).await;
-    return get_account_session_by_refresh_token(new_refresh_token.as_str(), &state).await;
+    
+    let session_option = get_account_session_by_refresh_token(new_refresh_token.as_str(), &state).await;
+    if session_option.is_none() { return None; }
+    let session = session_option.unwrap();
+    
+    let refresh_token_lifetime = state.config.lock().await.auth.refresh_token_lifetime;
+    let lifetime_end = session.refresh_token_creation_date() + Duration::from_secs(refresh_token_lifetime);
+    if lifetime_end < now_time {
+        delete_account_session_by_id(session.id(), state).await;
+        return None;
+    }
+
+    return Some(session);
+}
+
+pub async fn sign_in_by_auth_code(auth_code : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
+    let now_time = Utc::now();
+    let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
+    if !is_client_valid { return None; }
+    
+   let auth_code_option = get_auth_code_by_code(auth_code, state).await;
+   if auth_code_option.is_none() { return None; }
+   let auth_code = auth_code_option.unwrap();
+   
+   let auth_code_lifetime = state.config.lock().await.auth.auth_code_lifetime;
+   let lifetime_end = auth_code.creation_date() + Duration::from_secs(auth_code_lifetime);
+   if lifetime_end < now_time {
+        delete_auth_code_by_id(auth_code.id(), state).await;
+        return None;
+   }
+
+   let [access_token, refresh_token] = generate_tokens_unique_pair(&state).await;
+   let session_option = create_account_session_safe(auth_code.account_id(), access_token.as_str(), refresh_token.as_str(), &state).await;
+   if session_option.is_none() { return None; }
+   delete_auth_code_by_id(auth_code.id(), state).await;
+   
+   return session_option;
 }
 
 pub async fn get_access_by_access_token(access_token : &str, state : &AppState) -> Option<impl IAccountSession> {
+    let now_time = Utc::now();
     let account_session_option = get_account_session_by_access_token(access_token, &state).await;
     if account_session_option.is_none() { return None; }
+    let account_session = account_session_option.unwrap();
+    let access_token_lifetime = state.config.lock().await.auth.access_token_lifetime;
+    let lifetime_end = account_session.access_token_creation_date() + Duration::from_secs(access_token_lifetime);
+    if lifetime_end < now_time {
+        delete_account_session_by_id(account_session.id(), state).await;
+        return None;
+    }
     update_account_session_last_usage_date_by_token(access_token, &state).await;
-    return account_session_option;
+    return Some(account_session);
 
 }
 

@@ -11,3 +11,4 @@ access_token_lifetime = 900
 refresh_token_lifetime = 86400
 auth_code_lifetime = 300
 check_session_status_freq = 43200
+check_auth_code_status_freq = 150

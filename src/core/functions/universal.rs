@@ -1,4 +1,4 @@
-use std::{future::Future, num::NonZeroU32};
+use std::num::NonZeroU32;
 
 use data_encoding::BASE64URL;
 use ring::{digest, pbkdf2, rand::{self, SecureRandom}};

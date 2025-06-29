@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, Form, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
+use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_auth_code, sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
@@ -65,6 +65,10 @@ pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<S
         let refresh_token_string = sign_in_data.refresh_token.unwrap_or(String::new());
         let refresh_token = refresh_token_string.as_str();
         account_session_option = transform_account_session(sign_in_by_refresh_token(refresh_token, client_id, client_secret, &state).await);
+    } else if grant_type == "code" {
+        let code_string = sign_in_data.code.unwrap_or(String::new());
+        let code = code_string.as_str();
+        account_session_option = transform_account_session(sign_in_by_auth_code(code, client_id, client_secret, &state).await);
     }
 
     if account_session_option.is_none() {
