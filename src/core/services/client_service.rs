@@ -11,7 +11,8 @@ fn row_to_client(row : &SqliteRow) -> Client {
     let client_name : &str = row.get("client_name");
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
-    return Client::new(id, client_name, password_hash, password_salt);
+    let redirect_uri : &str = row.get("redirect_uri");
+    return Client::new(id, client_name, password_hash, password_salt, redirect_uri);
 }
 
 pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
@@ -48,7 +49,7 @@ pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_nam
     return val == 1;
 }
 
-pub async fn create_client(id : &str, client_name : &str, password : &str, state : &AppState) -> () {
+pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, state : &AppState) -> () {
     let [pwd_hash, pwd_salt] = hash_password(&password);
  
      let mut context = tera::Context::new();
@@ -56,6 +57,7 @@ pub async fn create_client(id : &str, client_name : &str, password : &str, state
      context.insert("client_name", client_name);
      context.insert("password_hash", pwd_hash.as_str());
      context.insert("password_salt", pwd_salt.as_str());
+     context.insert("redirect_uri", redirect_uri);
  
      const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
      execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;
@@ -114,6 +116,14 @@ pub async fn set_client_password(id : &str, password : &str, state : &AppState) 
     context.insert("password_hash", hashed_password[0].as_str());
     context.insert("password_salt", hashed_password[1].as_str());
     execute_script_template_wo_return(SET_CLIENT_PASSWORD_TEMPLATE, &context, &state).await;
+}
+
+pub async fn set_client_redirect_uri(id : &str, redirect_uri : &str, state : &AppState) -> () {
+    const SET_CLIENT_REDIRECT_URI_TEMPLATE : &str = "database_scripts/client/set_client_redirect_uri.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    context.insert("redirect_uri", &redirect_uri);
+    execute_script_template_wo_return(SET_CLIENT_REDIRECT_URI_TEMPLATE, &context, &state).await;
 }
 
 pub async fn delete_client_by_id(id : &str, state : &AppState) -> () {

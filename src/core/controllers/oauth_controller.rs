@@ -47,7 +47,8 @@ pub struct SignInData {
     pub username : Option<String>,
     pub password : Option<String>,
     pub code : Option<String>,
-    pub refresh_token : Option<String>
+    pub refresh_token : Option<String>,
+    pub redirect_uri : Option<String>
 }
 
 pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<SignInData>) -> impl IntoResponse {

@@ -151,7 +151,7 @@ async fn main() {
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
     if !is_client_already_exists {
-        create_client(generate_id().await.as_str(), "api", "qwerty", &state).await;
+        create_client(generate_id().await.as_str(), "api", "qwerty", "http://localhost:8000/oauth_code_redirect", &state).await;
     }
     // END TODO
 
