@@ -1,15 +1,16 @@
-use chrono::prelude::*;
+use chrono::{DateTime, Utc};
 
-use super::ILocalObject;
+use crate::santa::data_model::traits::IRoomRelated;
 
-pub trait IMessage : ILocalObject {
+pub trait IMessage : IRoomRelated {
+
+    fn new(id : &str, text : &str, room_id : &str, is_send_by_mailer : bool, date : DateTime<Utc>) -> Self;
+
     fn text(&self) -> &str;
-    fn room_id(&self) -> &str;
     fn is_send_by_mailer(&self) -> bool;
     fn date(&self) -> DateTime<Utc>;
 
     fn set_text(&mut self, text : &str) -> ();
-    fn set_room_id(&mut self, room_id : &str) -> ();
     fn set_is_send_by_mailer(&mut self, value : bool) -> ();
     fn set_date(&mut self, date : DateTime<Utc>) -> ();
 

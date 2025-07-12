@@ -5,8 +5,6 @@ mod account;
 mod client;
 mod auth_code;
 mod account_session;
-mod message;
-mod room;
 mod public_user_info;
 mod recovery_user_info;
 
@@ -17,7 +15,5 @@ pub use account::IAccount;
 pub use client::IClient;
 pub use auth_code::IAuthCode;
 pub use account_session::IAccountSession;
-pub use message::IMessage;
-pub use room::IRoom;
 pub use public_user_info::IPublicUserInfo;
 pub use recovery_user_info::IRecoveryUserInfo;

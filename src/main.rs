@@ -1,4 +1,5 @@
 mod core;
+mod santa;
 
 use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
