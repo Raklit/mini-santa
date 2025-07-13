@@ -1,16 +1,16 @@
-use chrono::prelude::*;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::core::data_model::traits::ILocalObject;
+use crate::core::data_model::traits::{IAccountRelated, ILocalObject};
 use crate::santa::data_model::traits::{IMessage, IRoomRelated};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Message {
     id : String,
-    text : String,
+    text_content : String,
+    account_id : String,
     room_id : String,
-    is_send_by_mailer : bool,
-    date : chrono::DateTime<chrono::Utc>
+    creation_date : DateTime<chrono::Utc>
 
 }
 
@@ -18,6 +18,12 @@ impl ILocalObject for Message {
     fn id(&self) -> &str { self.id.as_str() }
 
     fn set_id(&mut self, id : &str) -> () { self.id = String::from(id) }
+}
+
+impl IAccountRelated for Message {
+    fn account_id(&self) -> &str { self.account_id.as_str() }
+
+    fn set_account_id(&mut self, account_id : &str) -> () { self.account_id = String::from(account_id); }
 }
 
 impl IRoomRelated for Message {
@@ -28,27 +34,21 @@ impl IRoomRelated for Message {
 
 impl IMessage for Message {
 
-    fn new(id : &str, text : &str, room_id : &str, is_send_by_mailer : bool, date : DateTime<Utc>) -> Self {
+    fn new(id : &str, text_content : &str, account_id : &str, room_id : &str, creation_date : DateTime<Utc>) -> Self {
         return Message {
             id : String::from(id),
-            text : String::from(text),
+            text_content : String::from(text_content),
+            account_id : String::from(account_id),
             room_id: String::from(room_id),
-            is_send_by_mailer : is_send_by_mailer,
-            date : date,
+            creation_date : creation_date,
         };
     }
-
-    fn text(&self) -> &str { self.text.as_str() }
-
-    fn is_send_by_mailer(&self) -> bool { self.is_send_by_mailer }
-
-    fn date(&self) -> DateTime<Utc> { self.date }
-
-    fn set_text(&mut self, text : &str) -> () { self.text = String::from(text) }
-
-    fn set_is_send_by_mailer(&mut self, value : bool) -> () { self.is_send_by_mailer = value }
-
-    fn set_date(&mut self, date : DateTime<Utc>) -> () { self.date = date }
     
-    fn is_send_by_recipient(&self) -> bool { !self.is_send_by_mailer() }
+    fn text_content(&self) -> &str { self.text_content.as_str() }
+    
+    fn creation_date(&self) -> DateTime<Utc> { self.creation_date }
+    
+    fn set_text_content(&mut self, text_content : &str) -> () { self.text_content = String::from(text_content); }
+    
+    fn set_creation_date(&mut self, creation_date : DateTime<Utc>) -> () { self.creation_date = creation_date; }
 }

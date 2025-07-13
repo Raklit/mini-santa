@@ -6,6 +6,7 @@ use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
 use crate::core::functions::generate_id;
 use crate::core::services::user_sign_up;
+use crate::santa::functions::santa_init_database;
 
 use axum:: {
     routing::get,
@@ -19,7 +20,7 @@ use tokio::sync::Mutex;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{filter, Layer};
 use tracing_subscriber::layer::SubscriberExt;
-use core::functions::init_database;
+use core::functions::core_init_database;
 use core::services::{create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
@@ -36,6 +37,11 @@ struct AppState {
     context : Arc<Mutex<Context>>,
     db : Arc<Mutex<SqlitePool>>,
     config: Arc<Mutex<AppConfig>>
+}
+
+async fn init_database(state : &AppState) {
+    core_init_database(state).await;
+    santa_init_database(state).await;
 }
 
 async fn run_background_tasks(state : &AppState) -> () {

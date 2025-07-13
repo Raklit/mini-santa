@@ -1,19 +1,15 @@
 use chrono::{DateTime, Utc};
 
-use crate::santa::data_model::traits::IRoomRelated;
+use crate::{core::data_model::traits::IAccountRelated, santa::data_model::traits::IRoomRelated};
 
-pub trait IMessage : IRoomRelated {
+pub trait IMessage : IAccountRelated + IRoomRelated {
 
-    fn new(id : &str, text : &str, room_id : &str, is_send_by_mailer : bool, date : DateTime<Utc>) -> Self;
+    fn new(id : &str, text_content : &str, account_id : &str, room_id : &str, creation_date : DateTime<Utc>) -> Self;
 
-    fn text(&self) -> &str;
-    fn is_send_by_mailer(&self) -> bool;
-    fn date(&self) -> DateTime<Utc>;
+    fn text_content(&self) -> &str;
+    fn creation_date(&self) -> DateTime<Utc>;
 
-    fn set_text(&mut self, text : &str) -> ();
-    fn set_is_send_by_mailer(&mut self, value : bool) -> ();
-    fn set_date(&mut self, date : DateTime<Utc>) -> ();
-
-    fn is_send_by_recipient(&self) -> bool { !self.is_send_by_mailer() }
+    fn set_text_content(&mut self, text_content : &str) -> ();
+    fn set_creation_date(&mut self, creation_date : DateTime<Utc>) -> ();
 
 }

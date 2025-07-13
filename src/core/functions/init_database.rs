@@ -36,7 +36,7 @@ async fn create_recovery_user_info_table(state : &AppState) -> () {
     execute_script_template_wo_return(CREATE_RECOVERY_USER_INFO_TABLE_TEMPLATE, &context, &state).await;
 }
 
-pub async fn init_database(state : &AppState) -> () {
+pub async fn core_init_database(state : &AppState) -> () {
     create_account_table(state).await;
     create_client_table(state).await;
     create_account_session_table(state).await;
