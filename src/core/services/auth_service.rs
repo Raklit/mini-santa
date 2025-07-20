@@ -5,7 +5,7 @@ use regex::Regex;
 
 use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id}}, AppState};
 
-use super::{create_account_session, delete_account_session_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
+use super::{create_account_session, delete_account_sessions_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
 pub async fn generate_tokens_unique_pair(state : &AppState) -> [String; 2] {
     let mut access_token : String;
@@ -131,7 +131,7 @@ pub async fn sign_out(id : &str, state : &AppState) -> () {
 }
 
 pub async fn sign_out_from_all(account_id : &str, state : &AppState) -> () {
-    delete_account_session_by_account_id(account_id, &state).await;
+    delete_account_sessions_by_account_id(account_id, &state).await;
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]

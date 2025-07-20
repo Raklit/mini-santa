@@ -1,0 +1,1 @@
+DELETE FROM rooms WHERE id = '{{id}}';

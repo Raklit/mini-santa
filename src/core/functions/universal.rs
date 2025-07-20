@@ -1,11 +1,11 @@
-use std::num::NonZeroU32;
+use std::{any::Any, num::NonZeroU32};
 
 use data_encoding::BASE64URL;
 use ring::{digest, pbkdf2, rand::{self, SecureRandom}};
-use sqlx::Executor;
+use sqlx::{sqlite::SqliteRow, Executor, Row};
 use uuid::Uuid;
 
-use crate::AppState;
+use crate::{core::data_model::traits::ILocalObject, santa::data_model::traits::IMember, AppState};
 
 pub fn generate_random_token() -> String {
     const TOKEN_LEN : usize = 64;
@@ -13,6 +13,10 @@ pub fn generate_random_token() -> String {
     let mut token = [0u8; TOKEN_LEN];
     let _ = rng.fill(&mut token);
     return BASE64URL.encode(&token).replace("=", "");
+}
+
+pub async fn generate_id() -> String {
+    return String::from(Uuid::new_v4());
 }
 
 pub fn hash_password_with_salt(password : &str, salt : &str) -> String {
@@ -59,6 +63,32 @@ pub async fn execute_script_template_wo_return(template_name : &str, context : &
     state.db.lock().await.execute(create_account_table_command.as_str()).await.unwrap();
 }
 
-pub async fn generate_id() -> String {
-    return String::from(Uuid::new_v4());
+pub async fn get_one_item_from_command<T>(command : &str, state : &AppState, transform_func : fn(&SqliteRow) -> T) -> Option<T> where T : ILocalObject {
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_optional(command).await {
+        Ok(o) => o,
+        Err(_) => None
+    };
+    if result.is_some() {
+        let obj = transform_func(&result.unwrap());
+        return Some(obj);
+    } else {
+        return None;
+    }
+}
+
+pub async fn get_many_items_from_command<T>(command : &str, state : &AppState, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
+    let conn = state.db.lock().await;
+    let result = match conn.fetch_all(command).await {
+        Ok(o) => Some(o),
+        Err(_) => None,
+    };
+
+    if result.is_some() {
+        let unwrap_result = result.unwrap();
+        let v = unwrap_result.iter().map(transform_func).collect();
+        return Some(v);
+    } else {
+        return None;
+    }
 }
