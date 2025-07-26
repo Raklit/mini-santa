@@ -58,9 +58,13 @@ pub async fn render_query_template(template_name : &str, context : &tera::Contex
     return state.tera.lock().await.render(template_name, &extended_context).unwrap();
 }
 
+pub async fn execute_command_wo_return(command : &str, state : &AppState) -> () {
+    state.db.lock().await.execute(command).await.unwrap();
+}
+
 pub async fn execute_script_template_wo_return(template_name : &str, context : &tera::Context, state : &AppState)  -> () {
-    let create_account_table_command = render_query_template(&template_name, &context, &state).await;
-    state.db.lock().await.execute(create_account_table_command.as_str()).await.unwrap();
+    let command = render_query_template(&template_name, &context, &state).await;
+    execute_command_wo_return(command.as_str(), state).await;
 }
 
 pub async fn get_one_item_from_command<T>(command : &str, state : &AppState, transform_func : fn(&SqliteRow) -> T) -> Option<T> where T : ILocalObject {

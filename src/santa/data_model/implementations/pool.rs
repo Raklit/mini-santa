@@ -16,7 +16,7 @@ pub struct Pool {
     is_creator_involved : bool,
     creation_date : DateTime<Utc>,
     lifetime : u64,
-    state : PoolState
+    pool_state : PoolState
 
 }
 
@@ -33,7 +33,7 @@ impl IAccountRelated for Pool {
 }
 
 impl IPool for Pool {
-    fn new(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, creation_date : DateTime<Utc>, lifetime : u64, state : PoolState) -> Self {
+    fn new(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, creation_date : DateTime<Utc>, lifetime : u64, pool_state : PoolState) -> Self {
         return Pool {
             id: String::from(id),
             name: String::from(name),
@@ -44,7 +44,7 @@ impl IPool for Pool {
             is_creator_involved: is_creator_involved,
             creation_date: creation_date,
             lifetime: lifetime,
-            state: state
+            pool_state: pool_state
         };
     }
 
@@ -62,7 +62,7 @@ impl IPool for Pool {
 
     fn lifetime(&self) -> u64 { self.lifetime }
 
-    fn state(&self) -> PoolState { self.state.clone() }
+    fn state(&self) -> PoolState { self.pool_state.clone() }
 
     fn set_name(&mut self, name : &str) -> () { self.name = String::from(name); }
 
@@ -78,5 +78,5 @@ impl IPool for Pool {
 
     fn set_lifetime(&mut self, lifetime : u64) -> () { self.lifetime = lifetime; }
 
-    fn set_state(&mut self, state : PoolState) -> () { self.state = state; }
+    fn set_state(&mut self, pool_state : PoolState) -> () { self.pool_state = pool_state; }
 }

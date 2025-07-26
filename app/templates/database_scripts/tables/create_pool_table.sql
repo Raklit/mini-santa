@@ -8,5 +8,5 @@ CREATE TABLE IF NOT EXISTS pools (
     is_creator_involved BOOLEAN NOT NULL,
     creation_date DATE NOT NULL,
     lifetime INTEGER NOT NULL,
-    state INTEGER NOT NULL
+    pool_state INTEGER NOT NULL
 );

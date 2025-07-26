@@ -1,0 +1,1 @@
+DELETE FROM pools WHERE id = '{{id}}';
