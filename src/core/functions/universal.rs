@@ -1,5 +1,6 @@
-use std::{any::Any, num::NonZeroU32};
+use std::{any::Any, future::Future, num::NonZeroU32, process::Output};
 
+use async_fn_traits::{AsyncFn2, AsyncFnMut2};
 use data_encoding::BASE64URL;
 use ring::{digest, pbkdf2, rand::{self, SecureRandom}};
 use sqlx::{sqlite::SqliteRow, Executor, Row};
@@ -95,4 +96,21 @@ pub async fn get_many_items_from_command<T>(command : &str, state : &AppState, t
     } else {
         return None;
     }
+}
+
+pub async fn command_result_exists(command : &str, state : &AppState) -> bool {
+    let conn = state.db.lock().await;
+    let result = conn.fetch_one(command).await.unwrap();
+    let val : u8 = result.get(0);
+    return val == 1;
+}
+
+pub async fn new_id_safe<F>(check_func : F, state : &AppState) -> String where F : for<'a, 'b> AsyncFn2<&'a str, &'b AppState, Output = bool> {
+    let mut new_id : String;
+    loop {
+        new_id = generate_id().await;
+        let is_object_id_already_exists = check_func(new_id.as_str(), state).await;
+        if !is_object_id_already_exists { break; }
+    }
+    return new_id;
 }

@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM rooms WHERE id = '{{id}}') AS row_exists;

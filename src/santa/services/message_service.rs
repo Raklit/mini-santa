@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use sqlx::{sqlite::SqliteRow, Row};
+use sqlx::{sqlite::SqliteRow, Executor, Row};
 
-use crate::{core::functions::{execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::{Message, Room}, traits::{IMessage, IRoom}}, AppState};
+use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::{Message, Room}, traits::{IMessage, IRoom}}, AppState};
 
 fn row_to_message(row : &SqliteRow) -> Message {
     let id : &str = row.get("id");
@@ -31,6 +31,14 @@ pub async fn get_messages_by_account_id(account_id : &str, state : &AppState) ->
     
     let command = render_query_template(GET_MESSAGES_BY_ACCOUNT_ID_TEMPLATE, &context, &state).await;
     return get_many_items_from_command(command.as_str(), state, row_to_message).await;
+}
+
+pub async fn is_message_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_MESSAGE_BY_ID_TEMPLATE : &str = "database_scripts/message/exists_message_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_MESSAGE_BY_ID_TEMPLATE, &context, &state).await;
+    return command_result_exists(command.as_str(), state).await;
 }
 
 pub async fn get_messages_by_room_id(room_id : &str, state : &AppState) -> Option<Vec<impl IMessage>> {

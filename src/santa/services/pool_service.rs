@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use sqlx::{sqlite::SqliteRow, Row};
 
-use crate::{core::functions::{execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::{PoolState, RoomState}, implementations::{Pool, Room}, traits::{IPool, IRoom}}, AppState};
+use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::{PoolState, RoomState}, implementations::{Pool, Room}, traits::{IPool, IRoom}}, AppState};
 
 fn row_to_pool(row : &SqliteRow) -> Pool {
     let id : &str = row.get("id");
@@ -47,6 +47,14 @@ pub async fn set_pool_state(id : &str, pool_state : PoolState, state : &AppState
     context.insert("pool_state", &pool_state_num);
     
     execute_script_template_wo_return(SET_POOL_STATE_TEMPLATE, &context, state).await;
+}
+
+pub async fn is_pool_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_POOL_BY_ID_TEMPLATE : &str = "database_scripts/pool/exists_pool_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_POOL_BY_ID_TEMPLATE, &context, &state).await;
+    return command_result_exists(command.as_str(), &state).await;
 }
 
 pub async fn create_pool(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, lifetime : u64, creation_date : DateTime<Utc>, pool_state : PoolState,  state : &AppState) -> () {

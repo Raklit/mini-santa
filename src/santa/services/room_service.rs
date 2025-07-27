@@ -1,6 +1,6 @@
 use sqlx::{sqlite::SqliteRow, Row};
 
-use crate::{core::functions::{execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::Room, traits::IRoom}, AppState};
+use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::Room, traits::IRoom}, AppState};
 
 fn row_to_room(row : &SqliteRow) -> Room {
     let id : &str = row.get("id");
@@ -39,6 +39,13 @@ pub async fn get_rooms_by_account_id(account_id : &str, state : &AppState) -> Op
     return get_many_items_from_command(command.as_str(), state, row_to_room).await;
 }
 
+pub async fn is_room_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_ROOM_BY_ID_TEMPLATE : &str = "database_scripts/room/exists_room_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_ROOM_BY_ID_TEMPLATE, &context, &state).await;
+    return command_result_exists(command.as_str(), state).await;
+}
 
 pub async fn create_room(id : &str, pool_id : &str, mailer_id : &str, recipient_id : &str, room_state : RoomState, state : &AppState) -> () {
     let room_state_num = room_state as usize;

@@ -1,6 +1,6 @@
 use sqlx::{sqlite::SqliteRow, Row};
 
-use crate::{core::functions::{execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{implementations::Member, traits::IMember}, AppState};
+use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{implementations::Member, traits::IMember}, AppState};
 
 fn row_to_member(row : &SqliteRow) -> Member {
     let id : &str = row.get("id");
@@ -35,6 +35,14 @@ pub async fn get_members_by_room_id(room_id : &str, state : &AppState) -> Option
     
     let command = render_query_template(GET_MEMBERS_BY_ROOM_ID_TEMPLATE, &context, &state).await;
     return get_many_items_from_command(command.as_str(), state, row_to_member).await;
+}
+
+pub async fn is_member_already_exists_by_id(id : &str, state : &AppState) -> bool {
+    const EXISTS_MEMBER_BY_ID_TEMPLATE : &str = "database_scripts/member/exists_member_by_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("id", &id);
+    let command = render_query_template(EXISTS_MEMBER_BY_ID_TEMPLATE, &context, &state).await;
+    return command_result_exists(command.as_str(), state).await;
 }
 
 pub async fn create_member(id : &str, account_id : &str, room_id : &str, wishlist : &str, state : &AppState) -> () {

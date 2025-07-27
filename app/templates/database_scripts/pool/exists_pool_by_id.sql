@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM pools WHERE id = '{{id}}') AS row_exists;

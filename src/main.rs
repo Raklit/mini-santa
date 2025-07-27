@@ -4,9 +4,11 @@ mod santa;
 use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
+use crate::core::data_model::traits::ILocalObject;
 use crate::core::functions::generate_id;
-use crate::core::services::user_sign_up;
+use crate::core::services::{get_account_by_id, get_account_by_login, user_sign_up};
 use crate::santa::functions::santa_init_database;
+use crate::santa::services::user_create_pool;
 
 use axum:: {
     routing::get,
@@ -22,6 +24,7 @@ use tracing_subscriber::{filter, Layer};
 use tracing_subscriber::layer::SubscriberExt;
 use core::functions::core_init_database;
 use core::services::{create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
+use std::env;
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -84,7 +87,6 @@ async fn index(State(state) : State<AppState>) -> Html<String> {
 
 #[tokio::main]
 async fn main() {
-
     const CONFIG_PATH : &str = "./Config.toml";
     let raw_config = fs::read_to_string(CONFIG_PATH).expect("Can't read config file");
     let app_config : AppConfig = toml::from_str(raw_config.as_str()).unwrap();
