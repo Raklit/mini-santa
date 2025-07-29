@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::core::data_model::traits::{IAccountRelated, ILocalObject};
-use crate::santa::data_model::traits::{IMessage, IRoomRelated};
+use crate::santa::data_model::traits::{IMessage, IPoolRelated, IRoomRelated};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Message {
@@ -10,6 +10,7 @@ pub struct Message {
     text_content : String,
     account_id : String,
     room_id : String,
+    pool_id : String,
     creation_date : DateTime<chrono::Utc>
 
 }
@@ -32,14 +33,21 @@ impl IRoomRelated for Message {
     fn set_room_id(&mut self, room_id : &str) -> () { self.room_id = String::from(room_id); }
 }
 
+impl IPoolRelated for Message {
+    fn pool_id(&self) -> &str { self.pool_id.as_str() }
+
+    fn set_pool_id(&mut self, pool_id : &str) -> () { self.pool_id = String::from(pool_id); }
+}
+
 impl IMessage for Message {
 
-    fn new(id : &str, text_content : &str, account_id : &str, room_id : &str, creation_date : DateTime<Utc>) -> Self {
+    fn new(id : &str, text_content : &str, account_id : &str, room_id : &str, pool_id : &str, creation_date : DateTime<Utc>) -> Self {
         return Message {
             id : String::from(id),
             text_content : String::from(text_content),
             account_id : String::from(account_id),
             room_id: String::from(room_id),
+            pool_id: String::from(pool_id),
             creation_date : creation_date,
         };
     }

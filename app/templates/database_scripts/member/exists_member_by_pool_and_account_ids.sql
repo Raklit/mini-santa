@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM members WHERE pool_id = '{{pool_id}}' AND account_id = '{{account_id}}') AS row_exists;

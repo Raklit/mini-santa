@@ -47,6 +47,16 @@ pub async fn get_members_by_pool_id(pool_id : &str, state : &AppState) -> Option
     return get_many_items_from_command(command.as_str(), state, row_to_member).await;
 }
 
+pub async fn get_member_by_pool_and_account_ids(pool_id : &str, account_id : &str, state : &AppState) -> Option<impl IMember> {
+    const GET_MEMBER_BY_POOL_AND_ACCOUNT_IDS_TEMPLATE : &str = "database_scripts/member/get_member_by_pool_and_account_ids.sql";
+    let mut context = tera::Context::new();
+    context.insert("pool_id", &pool_id);
+    context.insert("account_id", &account_id);
+    
+    let command = render_query_template(GET_MEMBER_BY_POOL_AND_ACCOUNT_IDS_TEMPLATE, &context, &state).await;
+    return get_one_item_from_command(command.as_str(), state, row_to_member).await;
+}
+
 pub async fn is_member_already_exists_by_id(id : &str, state : &AppState) -> bool {
     const EXISTS_MEMBER_BY_ID_TEMPLATE : &str = "database_scripts/member/exists_member_by_id.sql";
     let mut context = tera::Context::new();
@@ -55,11 +65,21 @@ pub async fn is_member_already_exists_by_id(id : &str, state : &AppState) -> boo
     return command_result_exists(command.as_str(), state).await;
 }
 
-pub async fn create_member(id : &str, account_id : &str, room_id : &str, wishlist : &str, state : &AppState) -> () {
+pub async fn is_member_already_exists_by_pool_and_account_ids(pool_id : &str, account_id : &str, state : &AppState) -> bool {
+    const EXISTS_MEMBER_BY_POOL_AND_ACCOUNT_IDS_TEMPLATE : &str = "database_scripts/member/exists_member_by_pool_and_account_ids.sql";
+    let mut context = tera::Context::new();
+    context.insert("pool_id", &pool_id);
+    context.insert("account_id", &account_id);
+    let command = render_query_template(EXISTS_MEMBER_BY_POOL_AND_ACCOUNT_IDS_TEMPLATE, &context, &state).await;
+    return command_result_exists(command.as_str(), state).await;
+}
+
+pub async fn create_member(id : &str, account_id : &str, room_id : &str, pool_id : &str, wishlist : &str, state : &AppState) -> () {
     let mut context = tera::Context::new();
      context.insert("id", id);
      context.insert("account_id", account_id);
      context.insert("room_id", room_id);
+     context.insert("pool_id", pool_id);
      context.insert("wishlist", wishlist);
  
      const CREATE_MEMBER_TEMPLATE : &str = "database_scripts/member/create_member.sql";

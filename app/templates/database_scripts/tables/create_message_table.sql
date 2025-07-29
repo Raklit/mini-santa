@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS messages (
     text_content TEXT NOT NULL,
     account_id VARCHAR(36) NOT NULL,
     room_id VARCHAR(36) NOT NULL,
+    pool_id VARCHAR(36) NOT NULL,
     creation_date DATE NOT NULL
 );
