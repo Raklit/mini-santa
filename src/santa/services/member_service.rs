@@ -6,8 +6,9 @@ fn row_to_member(row : &SqliteRow) -> Member {
     let id : &str = row.get("id");
     let account_id : &str = row.get("account_id");
     let room_id : &str = row.get("room_id");
+    let pool_id : &str = row.get("pool_id");
     let wishlist : &str = row.get("wishlist");
-    return Member::new(id, account_id, room_id, wishlist);
+    return Member::new(id, account_id, room_id, pool_id, wishlist);
 }
 
 pub async fn get_member_by_id(id : &str, state : &AppState) -> Option<impl IMember> {
@@ -34,6 +35,15 @@ pub async fn get_members_by_room_id(room_id : &str, state : &AppState) -> Option
     context.insert("room_id", &room_id);
     
     let command = render_query_template(GET_MEMBERS_BY_ROOM_ID_TEMPLATE, &context, &state).await;
+    return get_many_items_from_command(command.as_str(), state, row_to_member).await;
+}
+
+pub async fn get_members_by_pool_id(pool_id : &str, state : &AppState) -> Option<Vec<impl IMember>> {
+    const GET_MEMBERS_BY_ACCOUNT_ID_TEMPLATE : &str = "database_scripts/member/get_members_by_pool_id.sql";
+    let mut context = tera::Context::new();
+    context.insert("pool_id", &pool_id);
+    
+    let command = render_query_template(GET_MEMBERS_BY_ACCOUNT_ID_TEMPLATE, &context, &state).await;
     return get_many_items_from_command(command.as_str(), state, row_to_member).await;
 }
 
