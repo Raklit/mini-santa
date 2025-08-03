@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS clients (
     password_hash VARCHAR(256) NOT NULL,
     password_salt VARCHAR(256) NOT NULL,
     redirect_uri VARCHAR(512) NOT NULL,
-    is_public BOOLEAN NOT NULL
+    no_pwd BOOLEAN NOT NULL
 );

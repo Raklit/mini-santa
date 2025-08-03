@@ -9,7 +9,7 @@ pub struct Client {
     password_hash : String,
     password_salt : String,
     redirect_uri : String,
-    is_public : bool
+    no_pwd : bool
 }
 
 impl ILocalObject for Client {
@@ -20,14 +20,14 @@ impl ILocalObject for Client {
 
 impl IClient for Client {
 
-    fn new(id : &str, client_name : &str, password_hash : &str, password_salt : &str, redirect_uri : &str, is_public : bool) -> Client {
+    fn new(id : &str, client_name : &str, password_hash : &str, password_salt : &str, redirect_uri : &str, no_pwd : bool) -> Client {
         return Client {
             id: String::from(id),
             client_name: String::from(client_name),
             password_hash: String::from(password_hash),
             password_salt: String::from(password_salt),
             redirect_uri: String::from(redirect_uri),
-            is_public: is_public
+            no_pwd: no_pwd
         };
     }
 
@@ -39,7 +39,7 @@ impl IClient for Client {
 
     fn redirect_uri(&self) -> &str { self.redirect_uri.as_str() }
 
-    fn is_public(&self) -> bool { return self.is_public; }
+    fn no_pwd(&self) -> bool { return self.no_pwd; }
 
     fn set_client_name(&mut self, client_name : &str) -> () { self.client_name = String::from(client_name) }
 
@@ -48,6 +48,5 @@ impl IClient for Client {
     fn set_password_salt(&mut self, password_salt : &str) -> () { self.password_salt = String::from(password_salt) }
 
     fn set_redirect_uri(&mut self, redirect_uri : &str) -> () { self.redirect_uri = String::from(redirect_uri) }
-
-    fn set_is_public(&mut self, is_public : bool) -> () { self.is_public = is_public }
+    
 }

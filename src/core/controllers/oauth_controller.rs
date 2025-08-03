@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use axum::{extract::{Query, State}, http::StatusCode, response::IntoResponse, Form, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Form, Json};
 use serde::{Deserialize, Serialize};
 
 use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_auth_code, sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
@@ -11,8 +9,7 @@ pub struct AuthResponse {
     pub refresh_token : String,
     pub token_type : String,
     pub expires_in : u64,
-    pub scope : String,
-    pub client_id : String
+    pub scope : String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,8 +80,7 @@ pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<S
         refresh_token: String::from(account_session.refresh_token()),
         token_type: String::from("Bearer"),
         expires_in: state.config.lock().await.auth.access_token_lifetime,
-        scope: String::from("read+write"),
-        client_id: String::from("api")
+        scope: String::from("read+write")
     };
 
     return Ok((StatusCode::OK, Json(response)).into_response());

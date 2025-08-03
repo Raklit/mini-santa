@@ -44,7 +44,7 @@ pub async fn is_client_valid(client_id : Option<String>, client_secret : Option<
     let client_option = get_client_by_client_name(client_id_unwrap_str, &state).await;
     if client_option.is_none() { return false; }
     let client = client_option.unwrap();
-    if client.is_public() { return true; }
+    if client.no_pwd() { return true; }
 
     if client_secret.is_none() { return false; }
     let client_secret_unwrap = client_secret.unwrap();

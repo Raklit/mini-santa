@@ -2,7 +2,7 @@ use super::ILocalObject;
 
 pub trait IClient : ILocalObject {
 
-    fn new(id : &str, client_name : &str, password_hash : &str, passwrod_salt : &str, redirect_uri : &str, is_public : bool) -> Self;
+    fn new(id : &str, client_name : &str, password_hash : &str, passwrod_salt : &str, redirect_uri : &str, no_pwd : bool) -> Self;
 
     fn client_name(&self) -> &str;
     
@@ -12,7 +12,7 @@ pub trait IClient : ILocalObject {
 
     fn redirect_uri(&self) -> &str;
 
-    fn is_public(&self) -> bool;
+    fn no_pwd(&self) -> bool;
 
     fn set_client_name(&mut self, client_name : &str) -> ();
     
@@ -21,6 +21,4 @@ pub trait IClient : ILocalObject {
     fn set_password_salt(&mut self, passwrod_salt : &str) -> ();
 
     fn set_redirect_uri(&mut self, redirect_uri : &str) -> ();
-
-    fn set_is_public(&mut self, is_public : bool) -> ();
 }

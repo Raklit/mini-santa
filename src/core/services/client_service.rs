@@ -3,7 +3,7 @@ use sqlx::{Row, Executor};
 
 use crate::core::data_model::implementations::Client;
 use crate::core::data_model::traits::IClient;
-use crate::core::functions::{execute_script_template_wo_return, hash_password, render_query_template};
+use crate::core::functions::{execute_script_template_wo_return, get_one_item_from_command, hash_password, render_query_template};
 use crate::AppState;
 
 fn row_to_client(row : &SqliteRow) -> Client {
@@ -12,8 +12,8 @@ fn row_to_client(row : &SqliteRow) -> Client {
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
     let redirect_uri : &str = row.get("redirect_uri");
-    let is_public : bool = row.get("is_public");
-    return Client::new(id, client_name, password_hash, password_salt, redirect_uri, is_public);
+    let no_pwd : bool = row.get("no_pwd");
+    return Client::new(id, client_name, password_hash, password_salt, redirect_uri, no_pwd);
 }
 
 pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
@@ -50,7 +50,7 @@ pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_nam
     return val == 1;
 }
 
-pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, is_public : bool, state : &AppState) -> () {
+pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, no_pwd : bool, state : &AppState) -> () {
     let [pwd_hash, pwd_salt] = hash_password(&password);
  
      let mut context = tera::Context::new();
@@ -59,7 +59,7 @@ pub async fn create_client(id : &str, client_name : &str, password : &str, redir
      context.insert("password_hash", pwd_hash.as_str());
      context.insert("password_salt", pwd_salt.as_str());
      context.insert("redirect_uri", redirect_uri);
-     context.insert("is_public", &is_public);
+     context.insert("no_pwd", &no_pwd);
  
      const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
      execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;
@@ -89,16 +89,7 @@ pub async fn get_client_by_client_name(client_name : &str, state : &AppState) ->
     context.insert("client_name", &client_name);
     
     let command = render_query_template(GET_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = match conn.fetch_optional(command.as_str()).await {
-        Ok(o) => o,
-        Err(_) => None
-    };
-    if result.is_some() {
-        return Some(row_to_client(&result.unwrap()));
-    } else {
-        return None;
-    }
+    return get_one_item_from_command(command.as_str(), state, row_to_client).await;
 }
 
 pub async fn set_client_name(id : &str, client_name : &str, state : &AppState) -> () {
