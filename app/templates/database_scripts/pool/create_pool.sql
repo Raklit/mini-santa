@@ -1,2 +1,2 @@
-INSERT INTO pools (id, name, description, account_id, min_price, max_price, is_creator_involved, lifetime, creation_date, pool_state)
-VALUES ('{{id}}', '{{name}}', '{{description}}', '{{account_id}}', {{min_price}}, {{max_price}}, {{is_creator_involved}}, {{lifetime}}, '{{creation_date}}', {{pool_state}});
+INSERT INTO pools (id, name, description, account_id, min_price, max_price, lifetime, creation_date, pool_state)
+VALUES ('{{id}}', '{{name}}', '{{description}}', '{{account_id}}', {{min_price}}, {{max_price}}, {{lifetime}}, '{{creation_date}}', {{pool_state}});

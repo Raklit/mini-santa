@@ -13,7 +13,6 @@ pub struct Pool {
     account_id : String,
     min_price : u64,
     max_price : u64,
-    is_creator_involved : bool,
     creation_date : DateTime<Utc>,
     lifetime : u64,
     pool_state : PoolState
@@ -33,7 +32,7 @@ impl IAccountRelated for Pool {
 }
 
 impl IPool for Pool {
-    fn new(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, creation_date : DateTime<Utc>, lifetime : u64, pool_state : PoolState) -> Self {
+    fn new(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, creation_date : DateTime<Utc>, lifetime : u64, pool_state : PoolState) -> Self {
         return Pool {
             id: String::from(id),
             name: String::from(name),
@@ -41,7 +40,6 @@ impl IPool for Pool {
             account_id: String::from(account_id),
             min_price: min_price,
             max_price: max_price,
-            is_creator_involved: is_creator_involved,
             creation_date: creation_date,
             lifetime: lifetime,
             pool_state: pool_state
@@ -56,8 +54,6 @@ impl IPool for Pool {
 
     fn max_price(&self) -> u64 { self.max_price }
 
-    fn is_creator_involdved(&self) -> bool { self.is_creator_involved }
-
     fn creation_date(&self) -> DateTime<Utc> { self.creation_date }
 
     fn lifetime(&self) -> u64 { self.lifetime }
@@ -71,8 +67,6 @@ impl IPool for Pool {
     fn set_min_price(&mut self, min_price : u64) -> () { self.min_price = min_price; }
 
     fn set_max_price(&mut self, max_price : u64) -> () { self.max_price = max_price; }
-
-    fn set_is_creator_involved(&mut self, is_creator_involved : bool) -> () { self.is_creator_involved = is_creator_involved; }
     
     fn set_creation_date(&mut self, creation_date : DateTime<Utc>) -> () { self.creation_date = creation_date; }
 

@@ -12,13 +12,12 @@ fn row_to_pool(row : &SqliteRow) -> Pool {
     let account_id : &str = row.get("account_id");
     let min_price : u64 = row.get("min_price");
     let max_price : u64 = row.get("max_price");
-    let is_creator_involved : bool = row.get("is_creator_involved");
     let lifetime : u64 = row.get("lifetime");
     let creation_date_str : &str = row.get("creation_date");
     let creation_date : DateTime<Utc> = DateTime::from_str(creation_date_str).unwrap();
     let pool_state_num : u8 = row.get("pool_state");
     let pool_state =  PoolState::try_from(usize::from(pool_state_num)).unwrap();
-    return Pool::new(id, name, description, account_id, min_price, max_price, is_creator_involved, creation_date, lifetime, pool_state);
+    return Pool::new(id, name, description, account_id, min_price, max_price, creation_date, lifetime, pool_state);
 }
 
 pub async fn get_pool_by_id(id : &str, state : &AppState) -> Option<impl IPool> {
@@ -57,7 +56,7 @@ pub async fn is_pool_already_exists_by_id(id : &str, state : &AppState) -> bool 
     return command_result_exists(command.as_str(), &state).await;
 }
 
-pub async fn create_pool(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, lifetime : u64, creation_date : DateTime<Utc>, pool_state : PoolState,  state : &AppState) -> () {
+pub async fn create_pool(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, lifetime : u64, creation_date : DateTime<Utc>, pool_state : PoolState,  state : &AppState) -> () {
     let pool_state_num = pool_state as usize;
 
     let mut context = tera::Context::new();
@@ -67,7 +66,6 @@ pub async fn create_pool(id : &str, name : &str, description : &str, account_id 
      context.insert("account_id", account_id);
      context.insert("min_price", &min_price);
      context.insert("max_price", &max_price);
-     context.insert("is_creator_involved", &is_creator_involved);
      context.insert("lifetime", &lifetime);
      context.insert("creation_date", &creation_date);
      context.insert("pool_state", &pool_state_num);

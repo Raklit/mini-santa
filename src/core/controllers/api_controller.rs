@@ -2,7 +2,7 @@ use axum::{body::Body, extract::State, http::{HeaderValue, Request, StatusCode},
 use axum_auth::AuthBearer;
 use chrono::{Duration, Utc};
 
-use crate::{core::{controllers::{get_current_user_id, get_current_user_nickname, sign_in, sign_up}, data_model::traits::{IAccountRelated, IAccountSession}, services::get_access_by_access_token}, AppState};
+use crate::{core::{controllers::{get_current_user_id, get_current_user_nickname, sign_in, sign_up}, data_model::traits::{IAccountRelated, IAccountSession}, services::get_access_by_access_token}, santa::controllers::create_pc, AppState};
 
 // easy routes
 
@@ -57,6 +57,11 @@ pub fn user_controller(state: AppState) -> Router<AppState> {
 }
 
 
+pub fn santa_pool_controller(state : AppState) -> Router<AppState> {
+    return Router::new()
+    .route("/create", post(create_pc))
+}
+
 // routers groups
 pub fn no_auth_api_router() -> Router<AppState> {
     return Router::new()
@@ -68,6 +73,7 @@ pub fn no_auth_api_router() -> Router<AppState> {
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
     return Router::new()
         .nest("/user", user_controller(state.clone()))
+        .nest("/pool", santa_pool_controller(state.clone()))
         .layer(from_fn_with_state(state.clone(), check_auth))
 }
 

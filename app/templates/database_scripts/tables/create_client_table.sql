@@ -3,5 +3,6 @@ CREATE TABLE IF NOT EXISTS clients (
     client_name VARCHAR(512) UNIQUE NOT NULL,
     password_hash VARCHAR(256) NOT NULL,
     password_salt VARCHAR(256) NOT NULL,
-    redirect_uri VARCHAR(512) NOT NULL
+    redirect_uri VARCHAR(512) NOT NULL,
+    is_public BOOLEAN NOT NULL
 );

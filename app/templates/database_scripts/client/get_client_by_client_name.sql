@@ -1,1 +1,1 @@
-SELECT id, client_name, password_hash, password_salt, redirect_uri FROM clients WHERE client_name = '{{client_name}}';
+SELECT id, client_name, password_hash, password_salt, redirect_uri, is_public FROM clients WHERE client_name = '{{client_name}}';

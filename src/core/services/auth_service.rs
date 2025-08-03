@@ -37,16 +37,24 @@ async fn create_account_session_safe(account_id : &str, access_token : &str, ref
     return get_account_session_by_id(&new_id.as_str(), &state).await;
 }
 
-pub async fn is_client_valid(client_id : &str, client_secret : &str, state : &AppState) -> bool {
-    let client = get_client_by_client_name(client_id, &state).await;
-    if client.is_none() { return false; }
-    let unwrap_client = client.unwrap();
-    let is_client_password_valid = validate_hash(client_secret, unwrap_client.password_salt(), unwrap_client.password_hash());
+pub async fn is_client_valid(client_id : Option<String>, client_secret : Option<String>, state : &AppState) -> bool {
+    if client_id.is_none() { return true; }
+    let client_id_unwrap = client_id.unwrap();
+    let client_id_unwrap_str = client_id_unwrap.as_str();
+    let client_option = get_client_by_client_name(client_id_unwrap_str, &state).await;
+    if client_option.is_none() { return false; }
+    let client = client_option.unwrap();
+    if client.is_public() { return true; }
+
+    if client_secret.is_none() { return false; }
+    let client_secret_unwrap = client_secret.unwrap();
+    let client_secret_unwrap_str = client_secret_unwrap.as_str();
+    let is_client_password_valid = validate_hash(client_secret_unwrap_str, client.password_salt(), client.password_hash());
     if !is_client_password_valid { return false; }
     return true;
 }
 
-pub async fn get_account_by_user_creditials(username : &str, password : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccount> {
+pub async fn get_account_by_user_creditials(username : &str, password : &str, client_id : Option<String>, client_secret : Option<String>, state : &AppState) -> Option<impl IAccount> {
     let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
     if !is_client_valid { return None; }
     let account = get_account_by_login(username, &state).await;
@@ -57,14 +65,14 @@ pub async fn get_account_by_user_creditials(username : &str, password : &str, cl
     return Some(unwrap_account);
 }
 
-pub async fn sign_in_by_user_creditials(username : &str, password : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
+pub async fn sign_in_by_user_creditials(username : &str, password : &str, client_id : Option<String>, client_secret : Option<String>, state : &AppState) -> Option<impl IAccountSession> {
     let account = get_account_by_user_creditials(username, password, client_id, client_secret, state).await;
     let [access_token, refresh_token] = generate_tokens_unique_pair(&state).await;
     if account.is_none() { return None; }
     return create_account_session_safe(account.unwrap().id(), access_token.as_str(), refresh_token.as_str(), &state).await;
 }
 
-pub async fn sign_in_by_refresh_token(refresh_token : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
+pub async fn sign_in_by_refresh_token(refresh_token : &str, client_id: Option<String>, client_secret : Option<String>, state : &AppState) -> Option<impl IAccountSession> {
     let now_time = Utc::now();
     let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
     if !is_client_valid { return None; }
@@ -86,7 +94,7 @@ pub async fn sign_in_by_refresh_token(refresh_token : &str, client_id : &str, cl
     return Some(session);
 }
 
-pub async fn sign_in_by_auth_code(auth_code : &str, client_id : &str, client_secret : &str, state : &AppState) -> Option<impl IAccountSession> {
+pub async fn sign_in_by_auth_code(auth_code : &str, client_id : Option<String>, client_secret : Option<String>, state : &AppState) -> Option<impl IAccountSession> {
     let now_time = Utc::now();
     let is_client_valid = is_client_valid(client_id, client_secret, &state).await;
     if !is_client_valid { return None; }

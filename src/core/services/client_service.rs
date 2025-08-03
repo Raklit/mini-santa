@@ -12,7 +12,8 @@ fn row_to_client(row : &SqliteRow) -> Client {
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
     let redirect_uri : &str = row.get("redirect_uri");
-    return Client::new(id, client_name, password_hash, password_salt, redirect_uri);
+    let is_public : bool = row.get("is_public");
+    return Client::new(id, client_name, password_hash, password_salt, redirect_uri, is_public);
 }
 
 pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
@@ -49,7 +50,7 @@ pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_nam
     return val == 1;
 }
 
-pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, state : &AppState) -> () {
+pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, is_public : bool, state : &AppState) -> () {
     let [pwd_hash, pwd_salt] = hash_password(&password);
  
      let mut context = tera::Context::new();
@@ -58,6 +59,7 @@ pub async fn create_client(id : &str, client_name : &str, password : &str, redir
      context.insert("password_hash", pwd_hash.as_str());
      context.insert("password_salt", pwd_salt.as_str());
      context.insert("redirect_uri", redirect_uri);
+     context.insert("is_public", &is_public);
  
      const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
      execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;

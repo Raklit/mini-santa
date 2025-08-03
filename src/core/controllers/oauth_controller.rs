@@ -11,7 +11,8 @@ pub struct AuthResponse {
     pub refresh_token : String,
     pub token_type : String,
     pub expires_in : u64,
-    pub scope : String
+    pub scope : String,
+    pub client_id : String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,8 +43,8 @@ fn transform_account_session(account_session_option : Option<impl IAccountSessio
 #[derive(Deserialize)]
 pub struct SignInData {
     pub grant_type : String,
-    pub client_id : String,
-    pub client_secret : String,
+    pub client_id : Option<String>,
+    pub client_secret : Option<String>,
     pub username : Option<String>,
     pub password : Option<String>,
     pub code : Option<String>,
@@ -53,8 +54,8 @@ pub struct SignInData {
 
 pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<SignInData>) -> impl IntoResponse {
     let grant_type = sign_in_data.grant_type.as_str();
-    let client_id = sign_in_data.client_id.as_str();
-    let client_secret = sign_in_data.client_secret.as_str();
+    let client_id = sign_in_data.client_id;
+    let client_secret = sign_in_data.client_secret;
     let mut account_session_option : Option<AccountSession> = None;
     if grant_type == "password" {
         let username_string = sign_in_data.username.unwrap_or(String::new());
@@ -82,7 +83,8 @@ pub async fn sign_in(State(state) : State<AppState>, Form(sign_in_data) : Form<S
         refresh_token: String::from(account_session.refresh_token()),
         token_type: String::from("Bearer"),
         expires_in: state.config.lock().await.auth.access_token_lifetime,
-        scope: String::from("read+write")
+        scope: String::from("read+write"),
+        client_id: String::from("api")
     };
 
     return Ok((StatusCode::OK, Json(response)).into_response());
@@ -99,7 +101,7 @@ pub struct SignUpData {
 }
 
 /// TODO: ALMOST IMPLEMENTET (check validation data function)
-pub async fn sign_up(State(state) : State<AppState>, Form(sign_up_data) : Form<SignUpData>) -> impl IntoResponse {
+pub async fn sign_up(State(state) : State<AppState>, Json(sign_up_data) : Json<SignUpData>) -> impl IntoResponse {
 
     let login = sign_up_data.login.as_str();
     let password = sign_up_data.password.as_str();

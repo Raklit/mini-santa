@@ -4,13 +4,12 @@ use crate::{core::data_model::traits::IAccountRelated, santa::data_model::enums:
 
 pub trait IPool : IAccountRelated {
 
-    fn new(id : &str, name : &str, description : &str, creator_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, creation_date : DateTime<Utc>, lifetime : u64, state : PoolState) -> Self;
+    fn new(id : &str, name : &str, description : &str, creator_id : &str, min_price : u64, max_price : u64, creation_date : DateTime<Utc>, lifetime : u64, state : PoolState) -> Self;
 
     fn name(&self) -> &str;
     fn description(&self) -> &str;
     fn min_price(&self) -> u64;
     fn max_price(&self) -> u64;
-    fn is_creator_involdved(&self) -> bool;
     fn creation_date(&self) -> DateTime<Utc>;
     fn lifetime(&self) -> u64;
     fn state(&self) -> PoolState;
@@ -19,7 +18,6 @@ pub trait IPool : IAccountRelated {
     fn set_description(&mut self, description : &str) -> ();
     fn set_min_price(&mut self, min_price : u64) -> ();
     fn set_max_price(&mut self, max_price : u64) -> ();
-    fn set_is_creator_involved(&mut self, is_creator_involved : bool) -> ();
     fn set_creation_date(&mut self, creation_date : DateTime<Utc>) -> ();
     fn set_lifetime(&mut self, lifetime : u64) -> ();
     fn set_state(&mut self, state : PoolState) -> ();
