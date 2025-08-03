@@ -1,11 +1,17 @@
 use chrono::Utc;
+use ::rand::{seq::SliceRandom, rng};
 
-use crate::{core::{data_model::traits::ILocalObject, functions::new_id_safe, services::is_account_already_exists_by_id}, santa::{data_model::{enums::PoolState, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::is_account_already_exists_by_id}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, is_creator_involved : bool, state : &AppState) -> () {
     let creation_date = Utc::now();
     let new_id = new_id_safe(is_pool_already_exists_by_id, state).await;
-    create_pool(&new_id.as_str(), name, description, account_id, min_price, max_price, is_creator_involved, u64::MAX, creation_date, PoolState::Created, state).await;
+    let pool_id = new_id.as_str();
+    create_pool(pool_id, name, description, account_id, min_price, max_price, is_creator_involved, u64::MAX, creation_date, PoolState::Created, state).await;
+    if is_creator_involved {
+        user_add_member_to_pool(account_id, pool_id, state).await;
+    }
 }
 
 pub async fn user_add_member_to_pool(account_id : &str, pool_id : &str, state : &AppState) -> () {
@@ -104,4 +110,57 @@ pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_c
     let creation_date = Utc::now();
     let new_id = new_id_safe(is_message_already_exists_by_id, state).await;
     create_message(new_id.as_str(), trimmed_text, account_id, room_id, pool_id, creation_date, state).await;
+}
+
+async fn user_create_room_for_members(member_mailer_id : &str, member_recipient_id : &str, state : &AppState) -> () {
+    let member_mailer_option = get_member_by_id(member_mailer_id, state).await;
+    if member_mailer_option.is_none() { return; }
+    let member_mailer = member_mailer_option.unwrap();
+    let member_recipient_option = get_member_by_id(member_recipient_id, state).await;
+    if member_recipient_option.is_none() { return; }
+    let member_recipient = member_recipient_option.unwrap();
+    let same_pool = member_mailer.pool_id() == member_recipient.pool_id();
+    if !same_pool { return; }
+
+    let pool_id = member_mailer.pool_id();
+    let pool_option = get_pool_by_id(pool_id, state).await;
+    if pool_option.is_none() { return; }
+    let pool = pool_option.unwrap();
+    if PoolState::Pooling != pool.state() { return; }
+
+    let new_id = new_id_safe(is_room_already_exists_by_id, state).await;
+    let room_id = new_id.as_str();
+    create_room(room_id, pool_id, member_mailer.account_id(), member_recipient.account_id(), RoomState::ChosingAGift, state).await;
+    set_member_room_id(member_mailer_id, room_id, state).await;
+    set_member_room_id(member_recipient_id, room_id, state).await;
+}
+
+fn make_pairs(vector : &Vec<&str>) -> Vec<[String; 2]> {
+   let mut mix = vector.clone();
+   mix.shuffle(&mut rng());
+   mix.push(mix[0]);
+   let mut result : Vec<[String; 2]> = Vec::new();
+   let n = mix.len();
+   for i in 0..(n - 1) {
+        let temp : [String; 2] = [String::from(mix[i]), String::from(mix[i+1])];
+        result.push(temp);
+   }
+   return result;
+}
+
+pub async fn user_make_rooms(pool_id : &str, state : &AppState) -> () {
+    let pool_option = get_pool_by_id(pool_id, state).await;
+    if !pool_option.is_none() { return; }
+    let pool = pool_option.unwrap();
+    if PoolState::Pooling != pool.state() { return; }
+    let members_option = get_members_by_pool_id(pool_id, state).await;
+    if members_option.is_none() { return; }
+    let members = members_option.unwrap();
+    let member_ids : Vec<&str> = members.iter().map(|m| -> &str {m.id()}).collect();
+    let pairs = make_pairs(&member_ids);
+    for pair in pairs {
+        let member_mailer_id = pair[0].as_str();
+        let member_recipient_id = pair[1].as_str();
+        user_create_room_for_members(member_mailer_id, member_recipient_id, state).await;
+    }
 }

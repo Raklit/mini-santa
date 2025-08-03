@@ -95,6 +95,15 @@ pub async fn set_wishlist_by_id(id : &str, wishlist : &str, state : &AppState) -
      execute_script_template_wo_return(SET_WISHLIST_TEMPLATE, &context, &state).await;
 }
 
+pub async fn set_member_room_id(id : &str, room_id : &str, state : &AppState) -> () {
+    let mut context = tera::Context::new();
+    context.insert("id", id);
+    context.insert("room_id", room_id);
+
+    const SET_MEMBER_ROOM_ID_TEMPLATE : &str = "database_scripts/member/set_member_room_id_template.sql";
+    execute_script_template_wo_return(SET_MEMBER_ROOM_ID_TEMPLATE, &context, &state).await;
+}
+
 pub async fn delete_member_by_id(id : &str, state : &AppState) -> () {
     let mut context = tera::Context::new();
      context.insert("id", id);
