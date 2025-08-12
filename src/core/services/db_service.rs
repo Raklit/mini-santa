@@ -71,6 +71,10 @@ pub trait IDbService {
         let values = vec![value];
         self.delete_many_by_prop(table_name, prop, values).await;
     }
+
+    async fn exists_by_prop(&self, table_name : String, prop : String, value : String) -> bool {
+        return self.get_one_by_prop(table_name, prop, value).await.is_some();
+    }
 }
 
 pub struct SQLiteDbService {
