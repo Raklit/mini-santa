@@ -33,24 +33,30 @@ pub trait IDbService {
         return self.insert_unsafe(esc_table_name_str, esc_props_str, esc_values).await;
     }
 
-    async fn update_unsafe(&self, table_name : String, key_prop : String, key_value : String, props : Vec<String>, values : Vec<String>);
+    async fn update_unsafe(&self, table_name : &str, key_prop : &str, key_value : &str, props : Vec<&str>, values : Vec<&str>);
 
     async fn update(&self, table_name : &str, key_prop : &str, key_value : &str, props : Vec<&str>, values : Vec<&str>) {
         let esc_table_name = escape_string(table_name);
+        let esc_table_name_str = esc_table_name.as_str();
         let esc_key_prop = escape_string(key_prop);
+        let esc_key_prop_str = esc_key_prop.as_str();
         let esc_key_value = escape_string(key_value);
+        let esc_key_value_str = esc_key_value.as_str();
         let esc_props : Vec<String> = props.iter().map(|s| -> String {escape_string(s)}).collect();
+        let esc_props_str = esc_props.iter().map(|s| {s.as_str()}).collect();
         let esc_values : Vec<String> = values.iter().map(|s| -> String {escape_string(s)}).collect();
-        self.update_unsafe(esc_table_name, esc_key_prop, esc_key_value, esc_props, esc_values).await;
+        let esc_values_str = esc_values.iter().map(|s| {s.as_str()}).collect(); 
+        self.update_unsafe(esc_table_name_str, esc_key_prop_str, esc_key_value_str, esc_props_str, esc_values_str).await;
     }
 
-    async fn get_many_by_prop_unsafe<T>(&self, table_name : String, prop : String, values : Vec<String>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject;
+    async fn get_many_by_prop_unsafe<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject;
 
     async fn get_many_by_prop<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
         let esc_table_name = escape_string(table_name);
         let esc_prop = escape_string(prop);
         let esc_values : Vec<String> = values.iter().map(|s| -> String {escape_string(s)}).collect();
-        return self.get_many_by_prop_unsafe(esc_table_name, esc_prop, esc_values, transform_func).await;
+        let esc_values_str = esc_values.iter().map(|s| -> &str {s.as_str()}).collect();
+        return self.get_many_by_prop_unsafe(esc_table_name.as_str(), esc_prop.as_str(), esc_values_str, transform_func).await;
     }
 
     async fn get_one_by_prop<T>(&self, table_name : &str, prop : &str, value : &str, transform_func : fn(&SqliteRow) -> T) -> Option<T> where T : ILocalObject + Clone {
@@ -146,15 +152,15 @@ impl IDbService for SQLiteDbService {
         return result;
     }
 
-    async fn update_unsafe(&self, table_name : String, key_prop : String, key_value : String, props : Vec<String>, values : Vec<String>) {
+    async fn update_unsafe(&self, table_name : &str, key_prop : &str, key_value : &str, props : Vec<&str>, values : Vec<&str>) {
         
         let n = min(props.len(), values.len());
         if n == 0 { return; }
 
         let mut set_lines = Vec::<String>::new();
         for i in 0..n {
-            let prop = props.get(i).unwrap().as_str();
-            let val =  values.get(i).unwrap().as_str();
+            let prop = props.get(i).unwrap();
+            let val =  values.get(i).unwrap();
             let temp = format!("\"{prop}\" = \'{val}\'");
             set_lines.push(temp);
         }
@@ -165,7 +171,7 @@ impl IDbService for SQLiteDbService {
 
     }
 
-    async fn get_many_by_prop_unsafe<T>(&self, table_name : String, prop : String, values : Vec<String>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
+    async fn get_many_by_prop_unsafe<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
         let values_quoted : Vec<String> = values.iter().map(| s | -> String {
             let result = format!("\'{s}\'");
             return result;
