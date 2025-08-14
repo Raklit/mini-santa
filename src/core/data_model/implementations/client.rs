@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::data_model::traits::{IClient, ILocalObject};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Client {
     id : String,
     client_name : String,

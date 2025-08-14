@@ -5,7 +5,7 @@ use sqlx::{sqlite::SqliteRow, Row};
 
 use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::{PoolState, RoomState}, implementations::{Pool, Room}, traits::{IPool, IRoom}}, AppState};
 
-fn row_to_pool(row : &SqliteRow) -> Pool {
+pub fn row_to_pool(row : &SqliteRow) -> Pool {
     let id : &str = row.get("id");
     let name : &str = row.get("name");
     let description : &str = row.get("description");

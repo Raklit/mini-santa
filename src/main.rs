@@ -5,10 +5,12 @@ use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
 use crate::core::data_model::traits::ILocalObject;
-use crate::core::functions::generate_id;
-use crate::core::services::{get_account_by_id, get_account_by_login, user_sign_up};
+use crate::core::functions::{generate_id, new_id_safe};
+use crate::core::services::{get_account_by_id, get_account_by_login, user_sign_up, IDbService, SQLiteDbService};
+use crate::santa::data_model::implementations::Message;
+use crate::santa::data_model::traits::IMessage;
 use crate::santa::functions::santa_init_database;
-use crate::santa::services::user_create_pool;
+use crate::santa::services::{is_message_already_exists_by_id, row_to_message, user_create_pool};
 
 use axum:: {
     routing::get,
@@ -17,7 +19,9 @@ use axum:: {
     response::Html
 };
 
-use sqlx::{SqlitePool};
+use chrono::Utc;
+use sqlx::any::install_default_drivers;
+use sqlx::{Row, SqlitePool};
 use tokio::sync::Mutex;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{filter, Layer};
@@ -151,19 +155,38 @@ async fn main() {
     };
 
     init_database(&state).await;
+    install_default_drivers();
 
     //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
-    if !is_admin_exists {
+    if is_admin_exists.is_some_and(|b| {b}) {
         user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", &state).await;
     }
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
-    if !is_client_already_exists {
+    if !is_client_already_exists.is_some_and(|b| {b}) {
         create_client(generate_id().await.as_str(), "api", "qwerty", "http://localhost:8000/oauth_code_redirect", true, &state).await;
     }
-    // END TODO
 
+    let db_service = SQLiteDbService::new(&state);
+    let message_id = db_service.new_id("messages").await.unwrap();
+    let now_time = Utc::now().to_rfc3339();
+    
+    let props = vec!["id", "text_content", "account_id", "pool_id", "room_id",  "creation_date"];
+    let values = vec![vec![message_id.as_str(), "Hello world", "0", "0", "0", now_time.as_str()]];
+    db_service.insert("messages", props, values).await;
+    db_service.update("messages", "id", &message_id.as_str(), vec!["text_content"], vec!["Goodbye world"]).await;
+
+    let exists_opt = db_service.exists_by_prop("messages", "id", message_id.as_str()).await;
+    if exists_opt.is_some_and(|x| { x }) {
+        let _ = db_service.get_one_by_prop("messages", "id", message_id.as_str(), row_to_message).await.unwrap();
+        db_service.delete_one_by_prop("messages", "id", message_id.as_str()).await;
+        let _ = db_service.exists_by_prop("messages", "id", message_id.as_str()).await;
+    }
+
+
+    // END TODO
+    
     // start threads
 
     let state_clone = state.clone();

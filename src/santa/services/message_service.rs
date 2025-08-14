@@ -5,7 +5,7 @@ use sqlx::{sqlite::SqliteRow, Executor, Row};
 
 use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::{Message, Room}, traits::{IMessage, IRoom}}, AppState};
 
-fn row_to_message(row : &SqliteRow) -> Message {
+pub fn row_to_message(row : &SqliteRow) -> Message {
     let id : &str = row.get("id");
     let text_content : &str = row.get("text_content");
     let account_id : &str = row.get("account_id");

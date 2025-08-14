@@ -1,5 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::core::data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo};
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PublicUserInfo {
     id : String,
     account_id : String,

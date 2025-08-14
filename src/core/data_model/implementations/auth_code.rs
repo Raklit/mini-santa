@@ -1,7 +1,9 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 use crate::core::data_model::traits::{IAccountRelated, ILocalObject, IAuthCode};
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AuthCode {
     id : String,
     account_id : String,

@@ -4,9 +4,11 @@ use sqlx::{Row, Executor};
 use crate::core::data_model::implementations::Account;
 use crate::core::data_model::traits::IAccount;
 use crate::core::functions::{execute_script_template_wo_return, hash_password, render_query_template};
+use crate::core::services::db_service::{self, SQLiteDbService};
+use crate::core::services::IDbService;
 use crate::AppState;
 
-fn row_to_account(row : &SqliteRow) -> Account {
+pub fn row_to_account(row : &SqliteRow) -> Account {
     let id : &str = row.get("id");
     let login : &str = row.get("login");
     let password_hash : &str = row.get("password_hash");
@@ -14,118 +16,64 @@ fn row_to_account(row : &SqliteRow) -> Account {
     return Account::new(id, login, password_hash, password_salt);
 }
 
-pub async fn is_account_already_exists_by_id(id : &str, state : &AppState) -> bool {
-    const EXISTS_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/exists_account_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
+pub async fn is_account_already_exists_by_id(id : &str, state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    return db_service.exists_by_prop("accounts", "id", id).await;
+
 }
 
-pub async fn is_account_already_exists_by_login(login : &str, state : &AppState) -> bool {
-    const EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/exists_account_by_login.sql";
-    let mut context = tera::Context::new();
-    context.insert("login", &login);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
-}
-
-pub async fn is_account_already_exists_by_id_or_login(id : &str, login : &str, state : &AppState) -> bool {
-    const EXISTS_ACCOUNT_BY_ID_OR_LOGIN_TEMPLATE : &str = "database_scripts/account/exists_account_by_id_or_login.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("login", &login);
-    let command = render_query_template(EXISTS_ACCOUNT_BY_ID_OR_LOGIN_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
+pub async fn is_account_already_exists_by_login(login : &str, state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    return db_service.exists_by_prop("accounts", "login", login).await;
 }
 
 pub async fn create_account(id : &str, login : &str, password : &str, state : &AppState) -> () {
+    let db_service = SQLiteDbService::new(state);
     let [pwd_hash, pwd_salt] = hash_password(&password);
- 
-     let mut context = tera::Context::new();
-     context.insert("id", id);
-     context.insert("login", login);
-     context.insert("password_hash", pwd_hash.as_str());
-     context.insert("password_salt", pwd_salt.as_str());
- 
-    const CREATE_ACCOUNT_TEMPLATE : &str = "database_scripts/account/create_account.sql";
-    execute_script_template_wo_return(CREATE_ACCOUNT_TEMPLATE, &context, &state).await;
+    let props = vec!["id", "login", "password_hash", "password_salt"];
+    let values = vec![vec![id, login, pwd_hash.as_str(), pwd_salt.as_str()]];
+    let _ = db_service.insert("accounts", props, values).await;
  }
 
 pub async fn get_account_by_id(id : &str, state : &AppState) -> Option<impl IAccount> {
-    const GET_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/get_account_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    
-    let command = render_query_template(GET_ACCOUNT_BY_ID_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = match conn.fetch_optional(command.as_str()).await {
-        Ok(o) => o,
-        Err(_) => None
-    };
-    if result.is_some() {
-        return Some(row_to_account(&result.unwrap()));
-    } else {
-        return None;
-    }
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("accounts", "id", id, row_to_account).await;
 }
 
 pub async fn get_account_by_login(login : &str, state : &AppState) -> Option<impl IAccount> {
-    const GET_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/get_account_by_login.sql";
-    let mut context = tera::Context::new();
-    context.insert("login", &login);
-    
-    let command = render_query_template(GET_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = match conn.fetch_optional(command.as_str()).await {
-        Ok(o) => o,
-        Err(_) => None
-    };
-    if result.is_some() {
-        return Some(row_to_account(&result.unwrap()));
-    } else {
-        return None;
-    }
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("accounts", "login", login, row_to_account).await;
 }
 
 pub async fn set_account_login(id : &str, login : &str, state : &AppState) -> () {
-    const SET_ACCOUNT_LOGIN_TEMPLATE : &str = "database_scripts/account/set_account_login.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("login", &login);
-    execute_script_template_wo_return(SET_ACCOUNT_LOGIN_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let props = vec!["login"];
+    let values = vec![login];
+    let _ = db_service.update("accounts", "id", id, props, values).await;
 }
 
 pub async fn set_account_password(id : &str, password : &str, state : &AppState) -> () {
-    let hashed_password = hash_password(&password);
+    let db_service = SQLiteDbService::new(state);
+    let [pwd_hash, pwd_salt] = hash_password(password);
+    let props = vec!["password_hash", "password_salt"];
+    let values = vec![pwd_hash.as_str(), pwd_salt.as_str()];
+    let _ = db_service.update("accounts", "id", id, props, values).await;
+}
 
-    const SET_ACCOUNT_PASSWORD_TEMPLATE : &str = "database_scripts/account/set_account_password.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("password_hash", hashed_password[0].as_str());
-    context.insert("password_salt", hashed_password[1].as_str());
-    execute_script_template_wo_return(SET_ACCOUNT_PASSWORD_TEMPLATE, &context, &state).await;
+pub async fn delete_account_by_ids(ids : Vec<&str>, state : &AppState) -> () {
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.delete_many_by_prop("accounts", "id", ids).await;
+}
+
+pub async fn delete_account_by_logins(logins : Vec<&str>, state : &AppState) -> () {
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.delete_many_by_prop("accounts", "login", logins).await;
 }
 
 pub async fn delete_account_by_id(id : &str, state : &AppState) -> () {
-    const DELETE_ACCOUNT_BY_ID_TEMPLATE : &str = "database_scripts/account/delete_account_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    execute_script_template_wo_return(DELETE_ACCOUNT_BY_ID_TEMPLATE, &context, &state).await;
+    delete_account_by_ids(vec![id], state).await;
 }
 
 pub async fn delete_account_by_login(login : &str, state : &AppState) -> () {
-    const DELETE_ACCOUNT_BY_LOGIN_TEMPLATE : &str = "database_scripts/account/delete_account_by_login.sql";
-    let mut context = tera::Context::new();
-    context.insert("login", &login);
-    execute_script_template_wo_return(DELETE_ACCOUNT_BY_LOGIN_TEMPLATE, &context, &state).await;
+    delete_account_by_logins(vec![login], state).await;
 }

@@ -2,7 +2,7 @@ use sqlx::{sqlite::SqliteRow, Row};
 
 use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::Room, traits::IRoom}, AppState};
 
-fn row_to_room(row : &SqliteRow) -> Room {
+pub fn row_to_room(row : &SqliteRow) -> Room {
     let id : &str = row.get("id");
     let pool_id : &str = row.get("pool_id");
     let mailer_id : &str = row.get("mailer_id");

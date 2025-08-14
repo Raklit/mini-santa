@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::{data_model::traits::{IAccount, ILocalObject}};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Account {
     id : String,
     login : String,

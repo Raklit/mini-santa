@@ -3,7 +3,7 @@ use std::time::Duration;
 use chrono::Utc;
 use regex::Regex;
 
-use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id}}, AppState};
+use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, db_service, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id, IDbService, SQLiteDbService}}, AppState};
 
 use super::{create_account_session, delete_account_sessions_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
@@ -26,13 +26,10 @@ pub async fn generate_tokens_unique_pair(state : &AppState) -> [String; 2] {
 }
 
 async fn create_account_session_safe(account_id : &str, access_token : &str, refresh_token : &str, state : &AppState) -> Option<impl IAccountSession> {
-    
-    let mut new_id : String;
-    loop {
-        new_id = generate_id().await;
-        let is_account_session_id_already_exists = is_account_session_already_exists_by_id(new_id.as_str(), &state).await;
-        if !is_account_session_id_already_exists { break; }
-    }
+    let db_service = SQLiteDbService::new(state);
+    let new_id_option = db_service.new_id("account_sessions").await;
+    if new_id_option.is_none() { return None; }
+    let new_id = new_id_option.unwrap();
     create_account_session(&new_id, &account_id, &access_token, &refresh_token, &state).await;
     return get_account_session_by_id(&new_id.as_str(), &state).await;
 }
@@ -170,7 +167,8 @@ pub enum SignUpStatus {
     NicknameExists = 16,
     NicknameIsEmpty = 17,
     NicknameIsLong = 18,
-    NicknameIsRestricted = 19
+    NicknameIsRestricted = 19,
+    DBConnectionLost = 20
 }
 
 fn is_login_chars_valid(login : &str) -> bool {
@@ -187,8 +185,9 @@ async fn is_login_valid(login : &str, state : &AppState) -> SignUpStatus {
     let login_chars_valid = is_login_chars_valid(login);
     if !login_chars_valid { return SignUpStatus::LoginContainsNotAllowedChars; }
 
-    let login_exists = is_account_already_exists_by_login(login, state).await;
-    if login_exists { return SignUpStatus::LoginExists; }
+    let login_exists_opt = is_account_already_exists_by_login(login, state).await;
+    if login_exists_opt.is_none() { return SignUpStatus::DBConnectionLost; }
+    if login_exists_opt.unwrap() { return SignUpStatus::LoginExists; }
 
     return SignUpStatus::OK;
 }
@@ -241,8 +240,9 @@ async fn is_nickname_valid(nickname : &str, state : &AppState) -> SignUpStatus {
     let nickname_restricted = is_nickname_restricted(nickname, state).await;
     if nickname_restricted { return SignUpStatus::NicknameIsRestricted; }
 
-    let nickname_exists = is_public_user_info_already_exists_by_nickname(nickname, state).await;
-    if nickname_exists { return SignUpStatus::NicknameExists; }
+    let nickname_exists_opt = is_public_user_info_already_exists_by_nickname(nickname, state).await;
+    if nickname_exists_opt.is_none() { return SignUpStatus::DBConnectionLost; }
+    if nickname_exists_opt.unwrap() { return SignUpStatus::NicknameExists; }
 
     return SignUpStatus::OK;
 }
@@ -256,35 +256,28 @@ async fn is_email_valid(email : &str, state : &AppState) -> SignUpStatus {
     let email_valid = re.is_match(email);
     if !email_valid { return SignUpStatus::EmailIsInvalid; }
     
-    let email_exists = is_recovery_user_info_already_exists_by_email(email, state).await;
-    if email_exists { return SignUpStatus::EmailAlreadyInUse; }
+    let email_exists_opt = is_recovery_user_info_already_exists_by_email(email, state).await;
+    if email_exists_opt.is_none() { return SignUpStatus::DBConnectionLost; }
+    if email_exists_opt.unwrap() { return SignUpStatus::EmailAlreadyInUse; }
     
     return SignUpStatus::OK;
 }
 
 /// TODO: NOT IMPLEMENTET YET
 async fn create_user(login : &str, password : &str, nickname : &str, email : &str, state : &AppState) -> () {
-    let mut account_id : String;
-    loop {
-        account_id = generate_id().await;
-        let account_exists = is_account_already_exists_by_id(account_id.as_str(), state).await;
-        if !account_exists { break; }
-    }
+    let db_service = SQLiteDbService::new(state);
+    
+    let account_id_opt = db_service.new_id("accounts").await;
+    if account_id_opt.is_none() { return; }
+    let account_id = account_id_opt.unwrap();
 
-    let mut public_user_info_id : String;
-    loop {
-        public_user_info_id = generate_id().await;
-        let public_user_info_exists = is_public_user_info_already_exists_by_id(public_user_info_id.as_str(), state).await;
-        if !public_user_info_exists { break; }
-    }
+    let public_user_info_opt = db_service.new_id("public_user_infos").await;
+    if public_user_info_opt.is_none() { return; }
+    let public_user_info_id = public_user_info_opt.unwrap();
 
-    let mut recovery_user_info_id : String;
-    loop {
-        recovery_user_info_id = generate_id().await;
-        let recovery_user_info_exists = is_recovery_user_info_already_exists_by_id(recovery_user_info_id.as_str(), state).await;
-        if !recovery_user_info_exists { break; }
-    }
-
+    let recovery_user_info_opt = db_service.new_id("recovery_user_infos").await;
+    if recovery_user_info_opt.is_none() { return; }
+    let recovery_user_info_id = recovery_user_info_opt.unwrap();
 
     create_account(account_id.as_str(), login, password, state).await;
     create_public_user_info(public_user_info_id.as_str(), account_id.as_str(), nickname, "", state).await;

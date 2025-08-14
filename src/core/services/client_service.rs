@@ -4,9 +4,10 @@ use sqlx::{Row, Executor};
 use crate::core::data_model::implementations::Client;
 use crate::core::data_model::traits::IClient;
 use crate::core::functions::{execute_script_template_wo_return, get_one_item_from_command, hash_password, render_query_template};
+use crate::core::services::{IDbService, SQLiteDbService};
 use crate::AppState;
 
-fn row_to_client(row : &SqliteRow) -> Client {
+pub fn row_to_client(row : &SqliteRow) -> Client {
     let id : &str = row.get("id");
     let client_name : &str = row.get("client_name");
     let password_hash : &str = row.get("password_hash");
@@ -16,119 +17,72 @@ fn row_to_client(row : &SqliteRow) -> Client {
     return Client::new(id, client_name, password_hash, password_salt, redirect_uri, no_pwd);
 }
 
-pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> bool {
-    const EXISTS_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/exists_client_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    let command = render_query_template(EXISTS_CLIENT_BY_ID_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
+pub async fn is_client_already_exists_by_id(id : &str, state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    return db_service.exists_by_prop("clients", "id", id).await;
 }
 
-pub async fn is_client_already_exists_by_client_name(client_name : &str, state : &AppState) -> bool {
-    const EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/exists_client_by_client_name.sql";
-    let mut context = tera::Context::new();
-    context.insert("client_name", &client_name);
-    let command = render_query_template(EXISTS_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
-}
-
-pub async fn is_client_already_exists_by_id_or_client_name(id : &str, client_name : &str, state : &AppState) -> bool {
-    const EXISTS_CLIENT_BY_ID_OR_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/exists_client_by_id_or_client_name.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("cliennt_name", &client_name);
-    let command = render_query_template(EXISTS_CLIENT_BY_ID_OR_CLIENT_NAME_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = conn.fetch_one(command.as_str()).await.unwrap();
-    let val : u8 = result.get(0);
-    return val == 1;
+pub async fn is_client_already_exists_by_client_name(client_name : &str, state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    return db_service.exists_by_prop("clients", "client_name", client_name).await;
 }
 
 pub async fn create_client(id : &str, client_name : &str, password : &str, redirect_uri : &str, no_pwd : bool, state : &AppState) -> () {
     let [pwd_hash, pwd_salt] = hash_password(&password);
- 
-     let mut context = tera::Context::new();
-     context.insert("id", id);
-     context.insert("client_name", client_name);
-     context.insert("password_hash", pwd_hash.as_str());
-     context.insert("password_salt", pwd_salt.as_str());
-     context.insert("redirect_uri", redirect_uri);
-     context.insert("no_pwd", &no_pwd);
- 
-     const CREATE_CLIENT_TEMPLATE : &str = "database_scripts/client/create_client.sql";
-     execute_script_template_wo_return(CREATE_CLIENT_TEMPLATE, &context, &state).await;
+    
+    let no_pwd_str : &str;
+    if no_pwd {
+        no_pwd_str = "true";
+    } else {
+        no_pwd_str = "false";
+    }
+
+    let db_service = SQLiteDbService::new(state);
+    let props = vec!["id", "client_name", "password_hash", "password_salt", "redirect_uri", "no_pwd"];
+    let values = vec![vec![id, client_name, pwd_hash.as_str(), pwd_salt.as_str(), redirect_uri, no_pwd_str]];
+
+    let _ = db_service.insert("clients", props, values).await;
  }
 
 pub async fn get_client_by_id(id : &str, state : &AppState) -> Option<impl IClient> {
-    const GET_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/get_client_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    
-    let command = render_query_template(GET_CLIENT_BY_ID_TEMPLATE, &context, &state).await;
-    let conn = state.db.lock().await;
-    let result = match conn.fetch_optional(command.as_str()).await {
-        Ok(o) => o,
-        Err(_) => None
-    };
-    if result.is_some() {
-        return Some(row_to_client(&result.unwrap()));
-    } else {
-        return None;
-    }
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("clients", "id", id, row_to_client).await;
 }
 
 pub async fn get_client_by_client_name(client_name : &str, state : &AppState) -> Option<impl IClient> {
-    const GET_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/get_client_by_client_name.sql";
-    let mut context = tera::Context::new();
-    context.insert("client_name", &client_name);
-    
-    let command = render_query_template(GET_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
-    return get_one_item_from_command(command.as_str(), state, row_to_client).await;
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("clients", "client_name", client_name, row_to_client).await;
 }
 
 pub async fn set_client_name(id : &str, client_name : &str, state : &AppState) -> () {
-    const SET_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/set_client_name.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("client_name", &client_name);
-    execute_script_template_wo_return(SET_CLIENT_NAME_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let props = vec!["client_name"];
+    let values = vec![client_name];
+    return db_service.update("clients", "id", id, props, values).await;
 }
 
 pub async fn set_client_password(id : &str, password : &str, state : &AppState) -> () {
-    let hashed_password = hash_password(&password);
+    let [pwd_hash, pwd_salt] = hash_password(&password);
 
-    const SET_CLIENT_PASSWORD_TEMPLATE : &str = "database_scripts/client/set_client_password.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("password_hash", hashed_password[0].as_str());
-    context.insert("password_salt", hashed_password[1].as_str());
-    execute_script_template_wo_return(SET_CLIENT_PASSWORD_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let props = vec!["password_hash", "password_salt"];
+    let values = vec![pwd_hash.as_str(), pwd_salt.as_str()];
+    return db_service.update("clients", "id", id, props, values).await;
 }
 
 pub async fn set_client_redirect_uri(id : &str, redirect_uri : &str, state : &AppState) -> () {
-    const SET_CLIENT_REDIRECT_URI_TEMPLATE : &str = "database_scripts/client/set_client_redirect_uri.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    context.insert("redirect_uri", &redirect_uri);
-    execute_script_template_wo_return(SET_CLIENT_REDIRECT_URI_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let props = vec!["redirect_uri"];
+    let values = vec![redirect_uri];
+    return db_service.update("clients", "id", id, props, values).await;
 }
 
 pub async fn delete_client_by_id(id : &str, state : &AppState) -> () {
-    const DELETE_CLIENT_BY_ID_TEMPLATE : &str = "database_scripts/client/delete_client_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    execute_script_template_wo_return(DELETE_CLIENT_BY_ID_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.delete_one_by_prop("clients", "id", id).await;
 }
 
 pub async fn delete_client_by_client_name(client_name : &str, state : &AppState) -> () {
-    const DELETE_CLIENT_BY_CLIENT_NAME_TEMPLATE : &str = "database_scripts/client/delete_client_by_client_name.sql";
-    let mut context = tera::Context::new();
-    context.insert("client_name", &client_name);
-    execute_script_template_wo_return(DELETE_CLIENT_BY_CLIENT_NAME_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.delete_one_by_prop("clients", "client_name", client_name).await;
 }

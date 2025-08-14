@@ -2,7 +2,7 @@ use sqlx::{sqlite::SqliteRow, Row};
 
 use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{implementations::Member, traits::IMember}, AppState};
 
-fn row_to_member(row : &SqliteRow) -> Member {
+pub fn row_to_member(row : &SqliteRow) -> Member {
     let id : &str = row.get("id");
     let account_id : &str = row.get("account_id");
     let room_id : &str = row.get("room_id");

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::data_model::traits::{IAccountSession, IAccountRelated, ILocalObject};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AccountSession {
     id : String,
     account_id : String,

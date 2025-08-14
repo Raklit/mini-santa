@@ -91,7 +91,7 @@ pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_c
     if trimmed_text.is_empty() { return; }
     
     let account_exists = is_account_already_exists_by_id(account_id, state).await;
-    if !account_exists { return; }
+    if account_exists.is_none_or(|b| {!b}) { return; }
     let room_option = get_room_by_id(room_id, state).await;
     if room_option.is_none() { return; }
     let room = room_option.unwrap();
