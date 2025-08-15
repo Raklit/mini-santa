@@ -45,6 +45,13 @@ pub trait IDbService {
         self.update_unsafe(esc_table_name.as_str(), esc_key_prop.as_str(), esc_key_value.as_str(), esc_props_str, esc_values_str).await;
     }
 
+    async fn get_all_unsafe<T>(&self, table_name : &str, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject;
+
+    async fn get_all<T>(&self, table_name : &str, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
+        let esc_table_name = escape_string(table_name);
+        return self.get_all_unsafe(esc_table_name.as_str(), transform_func).await;
+    }
+
     async fn get_many_by_prop_unsafe<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject;
 
     async fn get_many_by_prop<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
@@ -162,6 +169,19 @@ impl IDbService for SQLiteDbService {
         let conn = self.state.db.lock().await;
         let _ = conn.execute(query.as_str()).await;
 
+    }
+
+    async fn get_all_unsafe<T>(&self, table_name : &str, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {
+        let query = format!("SELECT * FROM \"{table_name}\"");
+        let conn = self.state.db.lock().await;
+        let query_result = match conn.fetch_all(query.as_str()).await {
+            Ok(o) => Some(o),
+            Err(_) => None
+        };
+        if query_result.is_none() { return None; }
+        let rows = query_result.unwrap();
+        let objs = rows.iter().map(transform_func).collect();
+        return Some(objs);
     }
 
     async fn get_many_by_prop_unsafe<T>(&self, table_name : &str, prop : &str, values : Vec<&str>, transform_func : fn(&SqliteRow) -> T) -> Option<Vec<T>> where T : ILocalObject {

@@ -18,7 +18,7 @@ impl ILocalObject for RecoveryUserInfo {
 }
 
 impl IAccountRelated for RecoveryUserInfo {
-    fn account_id(&self) -> &str { &self.account_id.as_str() }
+    fn account_id(&self) -> &str { self.account_id.as_str() }
 
     fn set_account_id(&mut self, account_id : &str) -> () { self.account_id = String::from(account_id) }
 }

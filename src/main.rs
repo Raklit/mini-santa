@@ -5,12 +5,10 @@ use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{api_router, auth_router};
 use crate::core::data_model::traits::ILocalObject;
-use crate::core::functions::{generate_id, new_id_safe};
-use crate::core::services::{get_account_by_id, get_account_by_login, user_sign_up, IDbService, SQLiteDbService};
-use crate::santa::data_model::implementations::Message;
-use crate::santa::data_model::traits::IMessage;
+use crate::core::functions::generate_id;
+use crate::core::services::{create_role, create_roles_user_info, is_role_already_exists_by_name, row_to_account, row_to_role, row_to_roles_user_info, user_sign_up, IDbService, SQLiteDbService};
 use crate::santa::functions::santa_init_database;
-use crate::santa::services::{is_message_already_exists_by_id, row_to_message, user_create_pool};
+use crate::santa::services::row_to_message;
 
 use axum:: {
     routing::get,
@@ -21,7 +19,7 @@ use axum:: {
 
 use chrono::Utc;
 use sqlx::any::install_default_drivers;
-use sqlx::{Row, SqlitePool};
+use sqlx::SqlitePool;
 use tokio::sync::Mutex;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{filter, Layer};
@@ -158,9 +156,15 @@ async fn main() {
     install_default_drivers();
 
     //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
+    let db_service = SQLiteDbService::new(&state);
+    
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
-    if is_admin_exists.is_some_and(|b| {b}) {
+    if is_admin_exists.is_some_and(|b| {!b}) {
         user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", &state).await;
+        let admin = db_service.get_one_by_prop("accounts", "login", "admin", row_to_account).await.unwrap();
+        let admin_role = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await.unwrap();
+        let roles_user_info_id = db_service.new_id("roles_user_infos").await.unwrap();
+        create_roles_user_info(roles_user_info_id.as_str(), admin.id(), admin_role.id(), "", &state).await;
     }
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
@@ -168,7 +172,6 @@ async fn main() {
         create_client(generate_id().await.as_str(), "api", "qwerty", "http://localhost:8000/oauth_code_redirect", true, &state).await;
     }
 
-    let db_service = SQLiteDbService::new(&state);
     let message_id = db_service.new_id("messages").await.unwrap();
     let now_time = Utc::now().to_rfc3339();
     
