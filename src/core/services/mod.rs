@@ -8,7 +8,6 @@ mod roles_user_info_service;
 mod role_service;
 mod auth_service;
 mod db_service;
-mod universal_service;
 
 pub use account_service::*;
 pub use auth_code_service::*;
@@ -20,4 +19,3 @@ pub use roles_user_info_service::*;
 pub use role_service::*;
 pub use auth_service::*;
 pub use db_service::*;
-pub use universal_service::*;

@@ -3,13 +3,16 @@ mod santa;
 
 use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
-use crate::core::controllers::{api_router, auth_router};
+use crate::core::controllers::{auth_router, check_auth, hello, ping, sign_up, user_router};
 use crate::core::data_model::traits::ILocalObject;
 use crate::core::functions::generate_id;
 use crate::core::services::{create_role, create_roles_user_info, is_role_already_exists_by_name, row_to_account, row_to_role, row_to_roles_user_info, user_sign_up, IDbService, SQLiteDbService};
+use crate::santa::controllers::santa_router;
 use crate::santa::functions::santa_init_database;
 use crate::santa::services::row_to_message;
 
+use axum::middleware::from_fn_with_state;
+use axum::routing::post;
 use axum:: {
     routing::get,
     Router,
@@ -37,7 +40,7 @@ use tera::{Tera, Context};
 use sqlx::{migrate::MigrateDatabase, Sqlite};
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     tera : Arc<Mutex<Tera>>,
     context : Arc<Mutex<Context>>,
     db : Arc<Mutex<SqlitePool>>,
@@ -52,6 +55,25 @@ async fn init_database(state : &AppState) {
 async fn run_background_tasks(state : &AppState) -> () {
     delete_old_account_sessions(state).await;
     delete_old_auth_codes(state).await;
+}
+
+// routers groups
+pub fn no_auth_api_router() -> Router<AppState> {
+    return Router::new()
+        .route("/hello", get(hello))
+        .route("/ping", get(ping))
+        .route("/sign_up", post(sign_up));
+}
+
+pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
+    return Router::new()
+        .nest("/users", user_router(state.clone()))
+        .nest("/santa", santa_router(state.clone()))
+        .layer(from_fn_with_state(state.clone(), check_auth))
+}
+
+pub fn api_router(state : AppState) -> Router<AppState> {
+    return need_auth_api_router(state).merge(no_auth_api_router());
 }
 
 async fn run_server(state : &AppState) {

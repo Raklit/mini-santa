@@ -1,7 +1,7 @@
-mod oauth_controller;
+mod auth_router;
 mod api_controller;
-mod user_controller;
+mod user_router;
 
-pub use oauth_controller::*;
+pub use auth_router::*;
 pub use api_controller::*;
-pub use user_controller::*;
+pub use user_router::*;

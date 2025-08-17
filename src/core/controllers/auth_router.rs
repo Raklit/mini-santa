@@ -1,4 +1,4 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Form, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Form, Json, Router};
 use serde::{Deserialize, Serialize};
 
 use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_auth_code, sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
@@ -112,4 +112,9 @@ pub async fn sign_up(State(state) : State<AppState>, Json(sign_up_data) : Json<S
         return Err((StatusCode::BAD_REQUEST, "").into_response());
     }
     return Ok((StatusCode::OK, "").into_response());
+}
+
+pub fn auth_router() -> Router<AppState> {
+    return Router::new()
+    .route("/token", post(sign_in))
 }
