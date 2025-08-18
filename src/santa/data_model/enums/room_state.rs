@@ -1,6 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize_repr, Deserialize_repr, Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum RoomState {
     ChosingAGift = 0,
     BuyingAGift = 1,

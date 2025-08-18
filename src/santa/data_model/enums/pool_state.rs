@@ -1,6 +1,8 @@
-use serde::{Serialize, Deserialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+
+#[derive(Serialize_repr, Deserialize_repr, Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum PoolState {
     Created = 0,
     Pooling = 1,
