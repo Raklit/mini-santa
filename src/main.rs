@@ -67,9 +67,9 @@ pub fn no_auth_api_router() -> Router<AppState> {
 
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
     return Router::new()
-        .nest("/users", user_router(state.clone()))
-        .nest("/santa", santa_router(state.clone()))
-        .layer(from_fn_with_state(state.clone(), check_auth))
+        .nest("/users", user_router(&state))
+        .nest("/santa", santa_router(&state))
+        .layer(from_fn_with_state(state, check_auth))
 }
 
 pub fn api_router(state : AppState) -> Router<AppState> {

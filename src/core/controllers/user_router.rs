@@ -14,7 +14,7 @@ pub async fn get_current_user_nickname(State(state) : State<AppState>, request :
     return String::from(nickname);
 }
 
-pub fn user_router(state: AppState) -> Router<AppState> {
+pub fn user_router(_: &AppState) -> Router<AppState> {
     return Router::new()
     .route("/my_id", get(get_current_user_id))
     .route("/my_nickname", get(get_current_user_nickname));
