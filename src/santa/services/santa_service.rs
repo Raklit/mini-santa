@@ -1,7 +1,7 @@
 use chrono::Utc;
 use ::rand::{seq::SliceRandom, rng};
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{is_account_already_exists_by_id}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{get_account_by_id, is_account_already_exists_by_id}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -103,27 +103,79 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     delete_pool_by_id(pool_id, state).await;
 }
 
-pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_content : &str, state : &AppState) -> () {
+pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_content : &str, state : &AppState) -> ApiResponse {
     let trimmed_text = text_content.trim();
-    if trimmed_text.is_empty() { return; }
+    if trimmed_text.is_empty() { 
+        let err_msg = String::from("Message content is empty");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
     
     let account_exists = is_account_already_exists_by_id(account_id, state).await;
-    if account_exists.is_none_or(|b| {!b}) { return; }
+    if account_exists.is_none_or(|b| {!b}) {
+        let err_msg = format!("Account with id \"{account_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());  
+    }
+
     let room_option = get_room_by_id(room_id, state).await;
-    if room_option.is_none() { return; }
+    if room_option.is_none() {
+        let err_msg = format!("Room with id \"{room_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());  
+    }
     let room = room_option.unwrap();
 
     let recipient_id = room.recipient_id();
+    let recipient_opt = get_member_by_id(recipient_id, state).await;
+    if recipient_opt.is_none() {
+        let err_msg = format!("Member with id (\"recipient_id\") \"{recipient_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
+    let recipient = recipient_opt.unwrap();
+
     let mailer_id = room.mailer_id();
-    if !account_id.eq(mailer_id) && !account_id.eq(recipient_id) { return; }
+    let mailer_opt = get_member_by_id(mailer_id, state).await;
+    if mailer_opt.is_none() {
+        let err_msg = format!("Member with id (\"mailer_id\") \"{mailer_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
+    let mailer = mailer_opt.unwrap();
+
+    let mailer_acc_id = mailer.account_id();
+    let recipient_acc_id = recipient.account_id();
+
+    let mailer_acc_exists = is_account_already_exists_by_id(mailer_acc_id, state).await;
+    if mailer_acc_exists.is_none_or(|b| {!b}) {
+        let err_msg = format!("Member with id (\"mailer_id\") \"{mailer_id}\" account with id \"{mailer_acc_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
+
+    let recipient_acc_exists = is_account_already_exists_by_id(recipient_acc_id, state).await;
+    if recipient_acc_exists.is_none_or(|b| {!b}) {
+        let err_msg = format!("Member with id (\"recipient_id\") \"{recipient_id}\" account with id \"{recipient_acc_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
+
+    if !account_id.eq(mailer_acc_id) && !account_id.eq(recipient_acc_id) { 
+        let err_msg = format!("Account with id \"{account_id}\" is not a member of the room with id \"{room_id}\"");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
 
     let pool_id = room.pool_id();
-    let pool_exists = is_pool_already_exists_by_id(pool_id, state).await;
-    if !pool_exists { return; }
+    let pool_opt = get_pool_by_id(pool_id, state).await;
+    if pool_opt.is_none() {
+        let err_msg = format!("Room with id \"{room_id}\" pool with id \"{pool_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
+    let pool = pool_opt.unwrap();
+
+    if PoolState::Started != pool.state() {
+        let err_msg = format!("State of pool with id \"{pool_id}\" does not allow send messages. Sending messages is available only at the starting stage");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
 
     let creation_date = Utc::now();
     let new_id = new_id_safe(is_message_already_exists_by_id, state).await;
     create_message(new_id.as_str(), trimmed_text, account_id, room_id, pool_id, creation_date, state).await;
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());
 }
 
 pub async fn user_create_room_for_members(member_mailer_id : &str, member_recipient_id : &str, state : &AppState) -> ApiResponse{
