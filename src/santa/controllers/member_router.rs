@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::controllers::ICRUDController, santa::{data_model::implementations::Member, services::{row_to_member, user_add_member_to_pool, user_create_pool}}, AppState};
+use crate::{core::controllers::{ApiResponse, ICRUDController}, santa::{data_model::implementations::Member, services::{row_to_member, user_add_member_to_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateMemberRequestData {
@@ -20,7 +20,7 @@ impl ICRUDController<CreateMemberRequestData, Member> for MemberCRUDController {
 
     fn transform_func() -> fn(&SqliteRow) -> Member { return row_to_member; }
 
-    async fn create_object_and_return_id(obj : CreateMemberRequestData, state : &AppState) -> String {
+    async fn create_object_and_return_id(obj : CreateMemberRequestData, state : &AppState) -> ApiResponse {
         let wishlist = obj.wishlist.unwrap_or(String::new());
         return user_add_member_to_pool(obj.account_id.as_str(), obj.pool_id.as_str(), wishlist.as_str(), state).await;
     }

@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::controllers::ICRUDController, santa::{data_model::implementations::Pool, services::{row_to_pool, user_create_pool}}, AppState};
+use crate::{core::controllers::{ApiResponse, ICRUDController}, santa::{data_model::implementations::Pool, services::{row_to_pool, user_create_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -22,7 +22,7 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
 
     fn transform_func() -> fn(&SqliteRow) -> Pool { return row_to_pool; }
 
-    async fn create_object_and_return_id(obj : CreatePoolRequestData, state : &AppState) -> String {
+    async fn create_object_and_return_id(obj : CreatePoolRequestData, state : &AppState) -> ApiResponse {
         return user_create_pool(obj.name.as_str(), obj.description.as_str(), obj.account_id.as_str(), obj.min_price, obj.max_price, state).await;
     }
 

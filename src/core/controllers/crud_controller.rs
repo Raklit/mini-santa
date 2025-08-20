@@ -53,12 +53,15 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
             return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
         }
         let obj = obj_wrap.unwrap();
-        let new_id = Self::create_object_and_return_id(obj, &state).await;
-        let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());
-        return (StatusCode::OK, Json(resp)).into_response();
+        resp = Self::create_object_and_return_id(obj, &state).await;
+        if resp.is_ok() {
+            return (StatusCode::OK, Json(resp)).into_response();
+        } else {
+            return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+        }
     }
 
-    async fn create_object_and_return_id(obj : T, state : &AppState) -> String;
+    async fn create_object_and_return_id(obj : T, state : &AppState) -> ApiResponse;
 
     async fn update_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, Json(json) : Json<HashMap<String, serde_json::Value>>) -> impl IntoResponse {
         let db_service = SQLiteDbService::new(&state);
