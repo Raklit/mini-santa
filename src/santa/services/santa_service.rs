@@ -12,10 +12,9 @@ pub async fn user_create_pool(name : &str, description : &str, account_id : &str
     return String::from(pool_id);
 }
 
-pub async fn user_add_member_to_pool(account_id : &str, pool_id : &str, wishlist_opt : Option<String>, state : &AppState) -> String {
+pub async fn user_add_member_to_pool(account_id : &str, pool_id : &str, wishlist : &str, state : &AppState) -> String {
     let new_id = new_id_safe(is_member_already_exists_by_id, state).await;
-    let wishlist = wishlist_opt.unwrap_or(String::new());
-    create_member(new_id.as_str(), account_id, "", pool_id, wishlist.as_str(), state).await;
+    create_member(new_id.as_str(), account_id, "", pool_id, wishlist, state).await;
     return new_id;
 }
 
