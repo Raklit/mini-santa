@@ -1,0 +1,30 @@
+services:
+  engine:
+    container_name: engine
+    image: mini-santa:latest
+    restart: "unless-stopped"
+    healthcheck:
+      test: ["CMD", "sh", "/executables/bash-scripts/healthcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+    env_file:
+      - ./.env/.basic_info
+    volumes:
+      - engine-db:/executables/db:rw
+    networks:
+      - internal
+      - external
+    ports:
+      - 8080:8080
+      - 80:80
+
+networks:
+  external:
+    driver: bridge
+  internal:
+    driver: bridge
+
+volumes:
+  engine-db: null

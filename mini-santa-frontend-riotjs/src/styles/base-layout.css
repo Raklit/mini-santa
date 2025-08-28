@@ -1,0 +1,18 @@
+#header-block, #vertical-menu-block {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+#logo-img-block, #logo-text-block {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#vertical-menu-block li {
+    display: inline-block;
+    margin-right: 3rem;
+}
+
+#vertical-menu-block li:last-child {
+    margin-right: 0;
+}

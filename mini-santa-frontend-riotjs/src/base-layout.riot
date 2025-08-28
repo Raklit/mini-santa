@@ -1,0 +1,33 @@
+<base-layout>
+    <router>
+        <div class="container">
+            <div id="header-block" class="row">
+                <div class="column"><div id="logo-img-block"><img src="{logo}" alt="site logo"></div><div id="logo-text-block"><span><b><i>Secret Santa</i></b></span></div></div>
+            </div>
+            <div class="row">
+                <div id="vertical-menu-block" class="column">
+                    <nav>
+                        <ul>
+                            <li><a href="/">Index</a></li>
+                            <li><a href="/profile">Profile</a></li>
+                            <li><a href="/pools">Pools</a></li>
+                            <li><a href="/chats">Chats</a></li>
+                            <li><a href="/logout">Log Out</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="row">
+                <div id="main-block" class="column">
+                    <route path="/"><index-page></index-page></route>
+                    <route path="/index"><index-page></index-page></route>
+                    <route path="/login"><login-page></login-page></route>
+                </div>
+            </div>
+        </div>
+    </router>
+    <script>
+        import logo from './assets/img/favicon.ico';
+        export default { logo };
+    </script>
+</base-layout>
