@@ -1,6 +1,8 @@
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import TerserPlugin from "terser-webpack-plugin";
+
 import webpack from "webpack";
 
 import { fileURLToPath } from 'url';
@@ -23,6 +25,7 @@ export default {
   devtool: "source-map",
   optimization: {
     minimize: true,
+    minimizer: [new TerserPlugin()],
     runtimeChunk: {
       name: "runtime",
     },
@@ -90,13 +93,15 @@ export default {
   optimization: {
     minimizer: [
       new CssMinimizerPlugin()
-    ]
+    ],
+    minimize: true
   },
   plugins: [
     new MiniCssExtractPlugin(),
     new HtmlWebpackPlugin({
       template: "src/index.html",
     }),
+    new TerserPlugin(),
     new webpack.HotModuleReplacementPlugin(),
   ],
 };
