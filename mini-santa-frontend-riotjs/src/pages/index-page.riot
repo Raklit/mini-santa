@@ -1,3 +1,26 @@
 <index-page>
-    <p>Hello world</p>
+    <p>Hello, {title}!</p>
+    <script lang="js">
+        import AuthHelper from '../auth-helper.js';
+
+        async function getNickname() {
+            return await AuthHelper.sendRequest("http://localhost:8080/api/users/my_nickname");
+        }
+
+        let title = "guest";
+
+        export default {
+            title,
+            async onMounted() {
+                try {
+                    let response = await getNickname();
+                    let nickname = await response.text();
+                    this.title = `user with nickname \"${nickname}\"`;
+                    this.update();
+                } catch (error) {
+                        console.error(error.message);
+                } 
+            }
+        };
+    </script>
 </index-page>

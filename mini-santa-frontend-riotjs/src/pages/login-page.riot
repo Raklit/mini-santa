@@ -2,7 +2,7 @@
 <div class="container">
     <div class="row">
         <div class="column">
-            <form>
+            <form onsubmit="{onLogInClick}">
                 <fieldset>
                     <label for="login" class="label-inline">Login</label>
                     <input type="text" id="login" name="login" placeholder="Enter your login">
@@ -14,4 +14,25 @@
         </div>
     </div>
 </div>
+<script lang="js">
+    import AuthHelper from '../auth-helper.js';
+
+    async function onLogInClick(e) {
+        e.preventDefault();
+
+        const login = document.getElementById("login").value;
+        const password = document.getElementById("password").value;
+
+        try {
+            await AuthHelper.loginByPassword(login, password);
+        } catch (error) {
+            console.log('Access Token error: ', error.message);
+        }
+
+        return false;
+    }
+
+    this.onLogInClick = onLogInClick;
+
+</script>
 </login-page>

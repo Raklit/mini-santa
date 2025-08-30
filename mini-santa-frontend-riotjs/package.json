@@ -41,8 +41,10 @@
         "@riotjs/hot-reload": "^9.0.1",
         "@riotjs/lazy": "^9.0.0",
         "@riotjs/route": "^9.1.2",
+        "client-oauth2": "^4.3.3",
         "milligram": "^1.4.1",
         "normalize.css": "^8.0.1",
+        "querystring-es3": "^0.2.1",
         "riot": "^9.1.1"
     }
 }

@@ -65,6 +65,16 @@ pub fn no_auth_api_router() -> Router<AppState> {
         .route("/sign_up", post(sign_up));
 }
 
+pub fn ui_router() -> Router<AppState> {
+    return Router::new()
+        .route("/", get(spa_handler))
+        .route("/login", get(spa_handler))
+        .route("/profile", get(spa_handler))
+        .route("/pools", get(spa_handler))
+        .route("/chats", get(spa_handler))
+        .route("/logout", get(spa_handler));
+}
+
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
     return Router::new()
         .nest("/users", user_router(&state))
@@ -78,9 +88,9 @@ pub fn api_router(state : AppState) -> Router<AppState> {
 
 async fn run_server(state : &AppState) {
     let app = Router::new()
-        .route("/", get(index))
         .nest("/api", api_router(state.clone()))
         .nest("/oauth", auth_router())
+        .merge(ui_router())
         .with_state(state.clone())
         .nest_service("/static", ServeDir::new("./app/static"))
         .layer(
@@ -96,7 +106,7 @@ async fn run_server(state : &AppState) {
     axum::serve(listener, app).await.unwrap()
 }
 
-async fn index(State(state) : State<AppState>) -> Html<String> {
+async fn spa_handler(State(state) : State<AppState>) -> Html<String> {
     let mut new_context = tera::Context::new();
     new_context.extend(state.context.lock().await.clone());
     let temp = match state.tera.lock().await.render("index.html", &new_context) {
