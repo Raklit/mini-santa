@@ -180,9 +180,9 @@ pub enum SignUpStatus {
 pub fn sign_up_error_description_map() -> HashMap<SignUpStatus, String> {
     let mut result = HashMap::<SignUpStatus, String>::new();
     result.insert(SignUpStatus::OK, String::from("Success"));
-    
+
     result.insert(SignUpStatus::LoginContainsNotAllowedChars, String::from("Login contains not allowed characters"));
-    result.insert(SignUpStatus::LoginExists, String::from("Login already in use"));
+    result.insert(SignUpStatus::LoginExists, String::from("Login is already in use by another account"));
     result.insert(SignUpStatus::LoginIsEmpty, String::from("Login is empty"));
     result.insert(SignUpStatus::LoginIsLong, String::from("Login is too long"));
     
@@ -195,10 +195,10 @@ pub fn sign_up_error_description_map() -> HashMap<SignUpStatus, String> {
     
     result.insert(SignUpStatus::EmailIsInvalid, String::from("Email is invalid"));
     result.insert(SignUpStatus::EmailIsEmpty, String::from("Email is empty"));
-    result.insert(SignUpStatus::EmailAlreadyInUse, String::from("Email is already in use"));
+    result.insert(SignUpStatus::EmailAlreadyInUse, String::from("Email is already in use by another account"));
 
     result.insert(SignUpStatus::NicknameContainsNotAllowedChars, String::from("Nickname contains not allowed characters"));
-    result.insert(SignUpStatus::NicknameExists, String::from("Nickname already in use"));
+    result.insert(SignUpStatus::NicknameExists, String::from("Nickname is already in use by another account"));
     result.insert(SignUpStatus::NicknameIsEmpty, String::from("Nickname is empty"));
     result.insert(SignUpStatus::NicknameIsLong, String::from("Nickname is too long"));
     result.insert(SignUpStatus::NicknameIsRestricted, String::from("Nickname is restricted"));
@@ -206,7 +206,7 @@ pub fn sign_up_error_description_map() -> HashMap<SignUpStatus, String> {
     result.insert(SignUpStatus::InviteCodeIsEmpty, String::from("Invite code is empty"));
     result.insert(SignUpStatus::InviteCodeDoesNotExists, String::from("Invite code does not exist"));
 
-    result.insert(SignUpStatus::DBConnectionLost, String::from("Database connection lost"));
+    result.insert(SignUpStatus::DBConnectionLost, String::from("The connection to the database was lost"));
 
     return result;
 }
