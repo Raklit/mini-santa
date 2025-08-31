@@ -21,13 +21,13 @@ impl IRolesUserInfo for RolesUserInfo {
         };
     }
 
-    async fn role_id(&self) -> &str { self.id.as_str() }
+    fn role_id(&self) -> &str { self.id.as_str() }
 
-    async fn params(&self) -> &str { self.params.as_str() }
+    fn params(&self) -> &str { self.params.as_str() }
     
-    async fn set_role_id(&mut self, role_id : &str) -> () { self.role_id = String::from(role_id); }
+    fn set_role_id(&mut self, role_id : &str) -> () { self.role_id = String::from(role_id); }
     
-    async fn set_params(&mut self, params : &str) -> () { self.params = String::from(params); }
+    fn set_params(&mut self, params : &str) -> () { self.params = String::from(params); }
 }
 
 impl ILocalObject for RolesUserInfo {

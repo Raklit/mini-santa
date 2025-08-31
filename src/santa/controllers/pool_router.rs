@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::controllers::{ApiResponse, ICRUDController}, santa::{data_model::implementations::Pool, services::{row_to_pool, user_create_pool}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController}, services::{IDbService, SQLiteDbService}}, santa::{data_model::implementations::Pool, services::{row_to_pool, user_create_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -14,6 +14,8 @@ pub struct CreatePoolRequestData {
 }
 
 pub struct PoolCRUDController {}
+
+impl PoolCRUDController {}
 
 impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
     fn object_type_name() -> String { return String::from("pool"); }
@@ -33,6 +35,23 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
             .route("/", post(Self::create_object_handler))
             .route("/id/{id}", put(Self::update_object_by_id_handler))
             .route("/id/{id}", delete(Self::delete_object_by_id_handler));
+    }
+    
+    async fn check_perm_create(_state : &AppState, _executor_id : &str) -> bool {
+        return true;
+    }
+    
+    async fn filter_many(state : &AppState, _executor_id : &str) -> Option<Vec<Pool>> {
+        let db_service = SQLiteDbService::new(state);
+        return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
+    }
+    
+    async fn check_perm_update(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
+        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    }
+    
+    async fn check_perm_delete(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
+        return Self::only_for_admin_or_moderator(state, executor_id).await;
     }
 }
 
