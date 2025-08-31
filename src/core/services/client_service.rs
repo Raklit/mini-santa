@@ -13,7 +13,8 @@ pub fn row_to_client(row : &SqliteRow) -> Client {
     let password_hash : &str = row.get("password_hash");
     let password_salt : &str = row.get("password_salt");
     let redirect_uri : &str = row.get("redirect_uri");
-    let no_pwd : bool = row.get("no_pwd");
+    let no_pwd_str : &str = row.get("no_pwd");
+    let no_pwd = no_pwd_str.to_lowercase() == "true";
     return Client::new(id, client_name, password_hash, password_salt, redirect_uri, no_pwd);
 }
 

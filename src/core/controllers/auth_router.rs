@@ -93,7 +93,8 @@ pub struct SignUpData {
     pub password : String,
     pub confirm_password : String,
     pub nickname : String,
-    pub email : String
+    pub email : String,
+    pub invite_code : String
 }
 
 /// TODO: ALMOST IMPLEMENTET (check validation data function)
@@ -104,9 +105,9 @@ pub async fn sign_up(State(state) : State<AppState>, Json(sign_up_data) : Json<S
     let confirm_password = sign_up_data.confirm_password.as_str();
     let nickname = sign_up_data.nickname.as_str();
     let email = sign_up_data.email.as_str();
+    let invite_code = sign_up_data.invite_code.as_str();
 
-
-    let result = user_sign_up(login, password, confirm_password, nickname, email, &state).await;
+    let result = user_sign_up(login, password, confirm_password, nickname, email, invite_code, &state).await;
     let data_valid = result.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });
     if !data_valid {
         return Err((StatusCode::BAD_REQUEST, "").into_response());

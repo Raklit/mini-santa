@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS invites (
+    id VARCHAR(36) PRIMARY KEY,
+    invite_code VARCHAR(256) NOT NULL,
+    one_use BOOLEAN NOT NULL
+);

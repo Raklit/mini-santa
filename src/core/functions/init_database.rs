@@ -49,6 +49,12 @@ async fn create_recovery_user_info_table(state : &AppState) -> () {
     execute_script_template_wo_return(CREATE_RECOVERY_USER_INFO_TABLE_TEMPLATE, &context, &state).await;
 }
 
+async fn create_invite_table(state : &AppState) -> () {
+    const CREATE_INVITE_TABLE_TEMPLATE: &str = "database_scripts/tables/create_invite_table.sql";
+    let context = tera::Context::new();
+    execute_script_template_wo_return(CREATE_INVITE_TABLE_TEMPLATE, &context, &state).await;
+}
+
 pub async fn core_init_database(state : &AppState) -> () {
     let db_service = SQLiteDbService::new(state);
 
@@ -60,6 +66,7 @@ pub async fn core_init_database(state : &AppState) -> () {
     create_public_user_info_table(state).await;
     create_recovery_user_info_table(state).await;
     create_role_table(state).await;
+    create_invite_table(state).await;
 
     let mut role_id : String;
     if db_service.exists_by_prop("roles", "name", "administrator").await.is_some_and(|b| {!b}) {

@@ -3,9 +3,9 @@ use std::time::Duration;
 use chrono::Utc;
 use regex::Regex;
 
-use crate::{core::{data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, ILocalObject}, functions::{generate_id, generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, db_service, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_id, is_account_already_exists_by_login, is_public_user_info_already_exists_by_id, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, is_recovery_user_info_already_exists_by_id, IDbService, SQLiteDbService}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, IInvite, ILocalObject}, functions::{generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, create_roles_user_info, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_login, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, row_to_invite, row_to_role, IDbService, SQLiteDbService}}, AppState};
 
-use super::{create_account_session, delete_account_sessions_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_id, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
+use super::{create_account_session, delete_account_sessions_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
 pub async fn generate_tokens_unique_pair(state : &AppState) -> [String; 2] {
     let mut access_token : String;
@@ -168,7 +168,13 @@ pub enum SignUpStatus {
     NicknameIsEmpty = 17,
     NicknameIsLong = 18,
     NicknameIsRestricted = 19,
-    DBConnectionLost = 20
+
+    // invite code
+    InviteCodeIsEmpty = 20,
+    InviteCodeDoesNotExists = 21,
+
+    // other
+    DBConnectionLost = 22,
 }
 
 fn is_login_chars_valid(login : &str) -> bool {
@@ -263,13 +269,29 @@ async fn is_email_valid(email : &str, state : &AppState) -> SignUpStatus {
     return SignUpStatus::OK;
 }
 
-/// TODO: NOT IMPLEMENTET YET
-async fn create_user(login : &str, password : &str, nickname : &str, email : &str, state : &AppState) -> () {
+async fn is_invite_code_valid(invite_code : &str, state : &AppState) -> SignUpStatus {
+    if invite_code.is_empty() { return SignUpStatus::InviteCodeIsEmpty; }
+
     let db_service = SQLiteDbService::new(state);
+    let invite_code_exists_opt = db_service.exists_by_prop("invites", "invite_code", invite_code).await;
+    if invite_code_exists_opt.is_none() { return SignUpStatus::DBConnectionLost; }
+    if !invite_code_exists_opt.unwrap() { return SignUpStatus::InviteCodeDoesNotExists; }
     
+    return SignUpStatus::OK;
+    
+} 
+
+async fn create_user(login : &str, password : &str, nickname : &str, email : &str, invite_code : &str, state : &AppState) -> () {
+    let db_service = SQLiteDbService::new(state);
+
+    // check all params
+    let invite_opt = db_service.get_one_by_prop("invites", "invite_code", invite_code, row_to_invite).await;
+    if invite_opt.is_none() { return; }
+
     let account_id_opt = db_service.new_id("accounts").await;
     if account_id_opt.is_none() { return; }
     let account_id = account_id_opt.unwrap();
+
 
     let public_user_info_opt = db_service.new_id("public_user_infos").await;
     if public_user_info_opt.is_none() { return; }
@@ -279,12 +301,36 @@ async fn create_user(login : &str, password : &str, nickname : &str, email : &st
     if recovery_user_info_opt.is_none() { return; }
     let recovery_user_info_id = recovery_user_info_opt.unwrap();
 
+    // find "user" role id
+
+    let user_role_opt = db_service.get_one_by_prop("roles", "name", "user", row_to_role).await;
+    if user_role_opt.is_none() { return; }
+    let user_role = user_role_opt.unwrap();
+    let user_role_id = user_role.id();
+
+    let role_user_info_id_opt = db_service.new_id("roles_user_infos").await;
+    if role_user_info_id_opt.is_none() { return; }
+    let role_user_info_id = role_user_info_id_opt.unwrap();
+
+    // create user
     create_account(account_id.as_str(), login, password, state).await;
     create_public_user_info(public_user_info_id.as_str(), account_id.as_str(), nickname, "", state).await;
     create_recovery_user_info(recovery_user_info_id.as_str(), account_id.as_str(), email, "", state).await;
+    create_roles_user_info(role_user_info_id.as_str(), account_id.as_str(), user_role_id, "", state).await;
+
+
+    // delete invite if it was one use code
+    let invite = invite_opt.unwrap();
+    let one_use = invite.one_use();
+
+    if one_use {
+        let invite_id = invite.id();
+        let _ = db_service.delete_one_by_prop("invites", "id", invite_id).await;
+    }
+
 }
 
-pub async fn user_sign_up(login : &str, password : &str, confirm_password : &str, nickname : &str, email : &str, state : &AppState) -> Vec<SignUpStatus> {
+pub async fn user_sign_up(login : &str, password : &str, confirm_password : &str, nickname : &str, email : &str, invite_code : &str, state : &AppState) -> Vec<SignUpStatus> {
     let mut result : Vec<SignUpStatus> = Vec::new();
 
     if password != confirm_password {
@@ -294,10 +340,39 @@ pub async fn user_sign_up(login : &str, password : &str, confirm_password : &str
     result.push(is_password_valid(password, state).await);
     result.push(is_nickname_valid(nickname, state).await);
     result.push(is_email_valid(email, state).await);
+    result.push(is_invite_code_valid(invite_code, state).await);
 
     let data_valid = result.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });
     if data_valid {
-        create_user(login, password, nickname, email, state).await;
+        create_user(login, password, nickname, email, invite_code, state).await;
     }
     return result;
+}
+
+pub async fn user_create_invite_code(one_use : bool, state : &AppState) -> ApiResponse {
+    let db_service = SQLiteDbService::new(state);
+    
+    let one_use_str : &str;
+    if one_use {
+        one_use_str = "true";
+    } else {
+        one_use_str = "false";
+    }
+
+    let id = db_service.new_id("invites").await.unwrap();
+
+    let mut code : String;
+    loop {
+        code = generate_random_token();
+        let code_exists = db_service.exists_by_prop("invites", "invite_code", code.as_str()).await;
+        if code_exists.is_some_and(|b| {!b}) {
+            break;
+        }
+    }
+
+    let props = vec!["id", "invite_code", "one_use"];
+    let values = vec![vec![id.as_str(), code.as_str(), one_use_str]];
+
+    let _ = db_service.insert("invites", props, values).await;
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(id).unwrap());
 }

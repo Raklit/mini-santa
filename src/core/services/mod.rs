@@ -6,6 +6,7 @@ mod public_user_info_service;
 mod recovery_user_info_service;
 mod roles_user_info_service;
 mod role_service;
+mod invite_service;
 mod auth_service;
 mod db_service;
 
@@ -17,5 +18,6 @@ pub use public_user_info_service::*;
 pub use recovery_user_info_service::*;
 pub use roles_user_info_service::*;
 pub use role_service::*;
+pub use invite_service::*;
 pub use auth_service::*;
 pub use db_service::*;

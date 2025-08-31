@@ -3,10 +3,10 @@ mod santa;
 
 use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
-use crate::core::controllers::{auth_router, check_auth, hello, ping, sign_up, user_router};
+use crate::core::controllers::{auth_router, check_auth, hello, invite_router, ping, sign_up, user_router};
 use crate::core::data_model::traits::ILocalObject;
 use crate::core::functions::generate_id;
-use crate::core::services::{create_role, create_roles_user_info, is_role_already_exists_by_name, row_to_account, row_to_role, row_to_roles_user_info, user_sign_up, IDbService, SQLiteDbService};
+use crate::core::services::{create_role, create_roles_user_info, is_role_already_exists_by_name, row_to_account, row_to_invite, row_to_role, row_to_roles_user_info, user_sign_up, IDbService, SQLiteDbService};
 use crate::santa::controllers::santa_router;
 use crate::santa::functions::santa_init_database;
 use crate::santa::services::row_to_message;
@@ -60,9 +60,9 @@ async fn run_background_tasks(state : &AppState) -> () {
 // routers groups
 pub fn no_auth_api_router() -> Router<AppState> {
     return Router::new()
-        .route("/hello", get(hello))
+        .route("/sign_up", post(sign_up))
         .route("/ping", get(ping))
-        .route("/sign_up", post(sign_up));
+        .route("/hello", get(hello));
 }
 
 pub fn ui_router() -> Router<AppState> {
@@ -78,6 +78,7 @@ pub fn ui_router() -> Router<AppState> {
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
     return Router::new()
         .nest("/users", user_router(&state))
+        .nest("/invites", invite_router(&state))
         .nest("/santa", santa_router(&state))
         .layer(from_fn_with_state(state, check_auth))
 }
@@ -190,12 +191,24 @@ async fn main() {
     //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
     let db_service = SQLiteDbService::new(&state);
     
+    let temp_code = "START UP";
+
+    let is_invite_code_exists = db_service.exists_by_prop("invites", "invite_code", temp_code).await;
+    if is_invite_code_exists.is_some_and(|b| {!b}) {
+        let new_id_string = db_service.new_id("invites").await.unwrap();
+        let new_id = new_id_string.as_str();
+        let props = vec!["id", "invite_code", "one_use"];
+        let values = vec![vec![new_id, temp_code, "true"]];
+        let _ = db_service.insert("invites", props, values).await;
+    }
+
     let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
     if is_admin_exists.is_some_and(|b| {!b}) {
-        user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", &state).await;
+        user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", temp_code, &state).await;
         let admin = db_service.get_one_by_prop("accounts", "login", "admin", row_to_account).await.unwrap();
         let admin_role = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await.unwrap();
         let roles_user_info_id = db_service.new_id("roles_user_infos").await.unwrap();
+        let _ = db_service.delete_one_by_prop("roles_user_infos", "account_id", admin.id()).await;
         create_roles_user_info(roles_user_info_id.as_str(), admin.id(), admin_role.id(), "", &state).await;
     }
 
