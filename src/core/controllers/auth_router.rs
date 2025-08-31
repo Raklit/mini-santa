@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Form, Json, Router};
 use serde::{Deserialize, Serialize};
 
-use crate::{core::{data_model::{implementations::AccountSession, traits::IAccountSession}, services::{sign_in_by_auth_code, sign_in_by_refresh_token, sign_in_by_user_creditials, user_sign_up, SignUpStatus}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::{implementations::AccountSession, traits::{IAccountSession, ILocalObject}}, services::{row_to_account, sign_in_by_auth_code, sign_in_by_refresh_token, sign_in_by_user_creditials, sign_up_error_description_map, user_sign_up, IDbService, SQLiteDbService, SignUpStatus}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct AuthResponse {
@@ -99,6 +99,7 @@ pub struct SignUpData {
 
 /// TODO: ALMOST IMPLEMENTET (check validation data function)
 pub async fn sign_up(State(state) : State<AppState>, Json(sign_up_data) : Json<SignUpData>) -> impl IntoResponse {
+    let db_service = SQLiteDbService::new(&state);
 
     let login = sign_up_data.login.as_str();
     let password = sign_up_data.password.as_str();
@@ -108,11 +109,26 @@ pub async fn sign_up(State(state) : State<AppState>, Json(sign_up_data) : Json<S
     let invite_code = sign_up_data.invite_code.as_str();
 
     let result = user_sign_up(login, password, confirm_password, nickname, email, invite_code, &state).await;
-    let data_valid = result.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });
+    let errors : Vec<SignUpStatus> = result.iter().filter(|&&s| { s != SignUpStatus::OK }).cloned().collect();
+    let data_valid = errors.is_empty();
+    
+    let resp : ApiResponse;
     if !data_valid {
-        return Err((StatusCode::BAD_REQUEST, "").into_response());
+        let error_map = sign_up_error_description_map();
+        let mut err_msgs = Vec::<String>::new();
+        for err in errors {
+            let err_string = error_map.get(&err).unwrap(); 
+            err_msgs.push(String::from(err_string.as_str()));
+        }
+        resp = ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msgs).unwrap());
+        return Err((StatusCode::BAD_REQUEST, Json(resp)).into_response());
     }
-    return Ok((StatusCode::OK, "").into_response());
+    
+    let account = db_service.get_one_by_prop("accounts", "login", login, row_to_account).await.unwrap();
+    let account_id = String::from(account.id());
+    
+    resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(account_id).unwrap());
+    return Ok((StatusCode::OK, Json(resp)).into_response());
 }
 
 pub fn auth_router() -> Router<AppState> {

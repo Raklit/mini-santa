@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use chrono::Utc;
 use regex::Regex;
@@ -139,42 +139,76 @@ pub async fn sign_out_from_all(account_id : &str, state : &AppState) -> () {
     delete_account_sessions_by_account_id(account_id, &state).await;
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub enum SignUpStatus {
     OK = 0,
 
     // login
     LoginContainsNotAllowedChars = 1,
-    LoginExists = 3,
-    LoginIsEmpty = 4,
-    LoginIsLong = 5,
+    LoginExists = 2,
+    LoginIsEmpty = 3,
+    LoginIsLong = 4,
 
     // password
-    PasswordContainsNotAllowedChars = 6,
-    PasswordDoesNotMatch = 7,
-    PasswordIsEmpty = 8,
-    PasswordIsShort = 9,
-    PasswordIsLong = 10,
-    PasswordIsCommon = 11,
+    PasswordContainsNotAllowedChars = 5,
+    PasswordDoesNotMatch = 6,
+    PasswordIsEmpty = 7,
+    PasswordIsShort = 8,
+    PasswordIsLong = 9,
+    PasswordIsCommon = 10,
     
     // email
-    EmailIsInvalid = 12,
-    EmailIsEmpty = 13,
-    EmailAlreadyInUse = 14,
+    EmailIsInvalid = 11,
+    EmailIsEmpty = 12,
+    EmailAlreadyInUse = 13,
 
     // nickname
-    NicknameContainsNotAllowedChars = 15,
-    NicknameExists = 16,
-    NicknameIsEmpty = 17,
-    NicknameIsLong = 18,
-    NicknameIsRestricted = 19,
+    NicknameContainsNotAllowedChars = 14,
+    NicknameExists = 15,
+    NicknameIsEmpty = 16,
+    NicknameIsLong = 17,
+    NicknameIsRestricted = 18,
 
     // invite code
-    InviteCodeIsEmpty = 20,
-    InviteCodeDoesNotExists = 21,
+    InviteCodeIsEmpty = 19,
+    InviteCodeDoesNotExists = 20,
 
     // other
-    DBConnectionLost = 22,
+    DBConnectionLost = 21,
+}
+
+pub fn sign_up_error_description_map() -> HashMap<SignUpStatus, String> {
+    let mut result = HashMap::<SignUpStatus, String>::new();
+    result.insert(SignUpStatus::OK, String::from("Success"));
+    
+    result.insert(SignUpStatus::LoginContainsNotAllowedChars, String::from("Login contains not allowed characters"));
+    result.insert(SignUpStatus::LoginExists, String::from("Login already in use"));
+    result.insert(SignUpStatus::LoginIsEmpty, String::from("Login is empty"));
+    result.insert(SignUpStatus::LoginIsLong, String::from("Login is too long"));
+    
+    result.insert(SignUpStatus::PasswordContainsNotAllowedChars, String::from("Password contains not allowed characters"));
+    result.insert(SignUpStatus::PasswordDoesNotMatch, String::from("Passwords do not match"));
+    result.insert(SignUpStatus::PasswordIsEmpty, String::from("Password is empty"));
+    result.insert(SignUpStatus::PasswordIsShort, String::from("Password is too short"));
+    result.insert(SignUpStatus::PasswordIsLong, String::from("Password is too long"));
+    result.insert(SignUpStatus::PasswordIsCommon, String::from("Password is too common"));
+    
+    result.insert(SignUpStatus::EmailIsInvalid, String::from("Email is invalid"));
+    result.insert(SignUpStatus::EmailIsEmpty, String::from("Email is empty"));
+    result.insert(SignUpStatus::EmailAlreadyInUse, String::from("Email is already in use"));
+
+    result.insert(SignUpStatus::NicknameContainsNotAllowedChars, String::from("Nickname contains not allowed characters"));
+    result.insert(SignUpStatus::NicknameExists, String::from("Nickname already in use"));
+    result.insert(SignUpStatus::NicknameIsEmpty, String::from("Nickname is empty"));
+    result.insert(SignUpStatus::NicknameIsLong, String::from("Nickname is too long"));
+    result.insert(SignUpStatus::NicknameIsRestricted, String::from("Nickname is restricted"));
+
+    result.insert(SignUpStatus::InviteCodeIsEmpty, String::from("Invite code is empty"));
+    result.insert(SignUpStatus::InviteCodeDoesNotExists, String::from("Invite code does not exist"));
+
+    result.insert(SignUpStatus::DBConnectionLost, String::from("Database connection lost"));
+
+    return result;
 }
 
 fn is_login_chars_valid(login : &str) -> bool {
@@ -349,9 +383,19 @@ pub async fn user_sign_up(login : &str, password : &str, confirm_password : &str
     return result;
 }
 
-pub async fn user_create_invite_code(one_use : bool, state : &AppState) -> ApiResponse {
+pub async fn user_create_invite_code(invite_code : &str, one_use : bool, state : &AppState) -> ApiResponse {
     let db_service = SQLiteDbService::new(state);
-    
+
+    let invite_code_is_empty = invite_code.is_empty();
+
+    if !invite_code_is_empty {
+        let invite_code_exists = db_service.exists_by_prop("invites", "invite_code", invite_code).await.unwrap();
+        if invite_code_exists {
+            let err_msg = format!("Invite code already exists");
+            return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+        }
+    }
+
     let one_use_str : &str;
     if one_use {
         one_use_str = "true";
@@ -361,12 +405,14 @@ pub async fn user_create_invite_code(one_use : bool, state : &AppState) -> ApiRe
 
     let id = db_service.new_id("invites").await.unwrap();
 
-    let mut code : String;
-    loop {
-        code = generate_random_token();
-        let code_exists = db_service.exists_by_prop("invites", "invite_code", code.as_str()).await;
-        if code_exists.is_some_and(|b| {!b}) {
-            break;
+    let mut code : String = String::from(invite_code);
+    if invite_code_is_empty {
+        loop {
+            code = generate_random_token();
+            let code_exists = db_service.exists_by_prop("invites", "invite_code", code.as_str()).await;
+            if code_exists.is_some_and(|b| {!b}) {
+                break;
+            }
         }
     }
 

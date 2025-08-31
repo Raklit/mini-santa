@@ -6,6 +6,7 @@ use crate::{core::{controllers::{ApiResponse, ICRUDController}, data_model::impl
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateInviteRequestData {
+    pub invite_code : Option<String>,
     pub one_use : Option<bool>
 }
 
@@ -19,8 +20,9 @@ impl ICRUDController<CreateInviteRequestData, Invite> for InviteCRUDController {
     fn transform_func() -> fn(&SqliteRow) -> Invite { return row_to_invite; }
 
     async fn create_object_and_return_id(obj : CreateInviteRequestData, state : &AppState) -> ApiResponse {
+        let invite_code = obj.invite_code.unwrap_or(String::new());
         let one_use = obj.one_use.unwrap_or(true);
-        return user_create_invite_code(one_use, state).await;
+        return user_create_invite_code(invite_code.as_str() ,one_use, state).await;
     }
 
     fn objects_router(_ : &AppState) -> Router<AppState> {
