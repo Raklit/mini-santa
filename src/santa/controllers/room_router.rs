@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController}, data_model::traits::ILocalObject, services::{IDbService, SQLiteDbService}}, santa::{data_model::implementations::Room, services::{row_to_member, row_to_room, user_create_room_for_members}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Pool, Room}, traits::{IPool, IPoolRelated, IRoom}}, services::{row_to_member, row_to_pool, row_to_room, user_create_room_for_members}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateRoomRequestData {
@@ -24,6 +24,51 @@ impl RoomCRUDController {
         let mut rooms = db_service.get_many_by_prop("rooms", "mailer_id", executor_member_ids.clone(), row_to_room).await.unwrap_or(vec![]);
         rooms.extend(db_service.get_many_by_prop("rooms", "recipient_id", executor_member_ids.clone(), row_to_room).await.unwrap_or(vec![]));
         return Some(rooms);
+    }
+
+    async fn basic_check_owner(state : &AppState, executor_id : &str, object_id : &str) -> (Option<bool>, WhoIsExecutor) {
+        let (basic_check, role) = Self::basic_check_perm(state, executor_id).await;
+        if basic_check.is_some() { return (basic_check, role); }
+        
+        let db_service = SQLiteDbService::new(state);
+
+        let room_opt = db_service.get_one_by_prop(Self::table_name().as_str(), "id", object_id, Self::transform_func()).await;
+        if room_opt.is_none() { return (Some(true), WhoIsExecutor::NoMatter); }
+        let room = room_opt.unwrap();
+
+        let mailer_opt = db_service.get_one_by_prop("members", "mailer_id", room.mailer_id(), row_to_member).await;
+        if mailer_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+        let mailer = mailer_opt.unwrap();
+
+        let recipient_opt = db_service.get_one_by_prop("members", "recipient_id", room.recipient_id(), row_to_member).await;
+        if recipient_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+        let recipient = recipient_opt.unwrap();
+        
+        let is_resource_owner = mailer.account_id() == executor_id || recipient.account_id() == executor_id;
+        if is_resource_owner { return (None, WhoIsExecutor::ResourceOwner); }
+
+        let pool_opt = db_service.get_one_by_prop("pools", "id", room.pool_id(), row_to_pool).await;
+        if pool_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+        let pool = pool_opt.unwrap();
+
+        let is_pool_owner = pool.account_id() == executor_id;
+        if is_pool_owner { return (None, WhoIsExecutor::PoolOwner); }
+
+        return (None, WhoIsExecutor::Other);
+    }
+
+    async fn get_pool_by_room_id(state : &AppState, room_id : &str) -> Option<Pool> {
+        let db_service = SQLiteDbService::new(state);
+        
+        let room_opt = db_service.get_one_by_prop(Self::table_name().as_str(), "id", room_id, Self::transform_func()).await;
+        if room_opt.is_none() { return None; }
+        let room = room_opt.unwrap();
+        
+        let pool_opt = db_service.get_one_by_prop("pools", "id", room.pool_id(), row_to_pool).await;
+        if pool_opt.is_none() { return None; }
+        let pool = pool_opt.unwrap();
+        
+        return Some(pool);
     }
 }
 
@@ -54,30 +99,49 @@ impl ICRUDController<CreateRoomRequestData, Room> for RoomCRUDController {
     async fn filter_many(state : &AppState, executor_id : &str) -> Option<Vec<Room>> {
         let db_service = SQLiteDbService::new(state);
 
-        let is_admin = Self::is_executor_admin(state, executor_id).await;
-        if is_admin {
-            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
-        }
-
-        let is_moderator = Self::is_executor_moderator(state, executor_id).await;
-        if is_moderator {
-            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
-        }
-
         let is_user = Self::is_executor_user(state, executor_id).await;
         if is_user {
             return Self::filter_user_rooms(state, executor_id).await;
         }
 
+        let (is_admin_or_moderator, _) = Self::only_for_admin_or_moderator(state, executor_id).await;
+        if is_admin_or_moderator {
+            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
+        }
+
         return None;
     }
     
-    async fn check_perm_update(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_update(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() {return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+
+        let pool_opt = Self::get_pool_by_room_id(state, object_id).await;
+        if pool_opt.is_none() { return false; }
+        let pool = pool_opt.unwrap();
+
+        if role == WhoIsExecutor::ResourceOwner && pool.state() == PoolState::Started {
+            return true;
+        } 
+        
+        return false;
     }
     
-    async fn check_perm_delete(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_delete(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() {return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+
+        let pool_opt = Self::get_pool_by_room_id(state, object_id).await;
+        if pool_opt.is_none() { return false; }
+        let pool = pool_opt.unwrap();
+
+        if role == WhoIsExecutor::PoolOwner && pool.state() == PoolState::Ended {
+            return true;
+        } 
+        
+        return false;
     }
 }
 

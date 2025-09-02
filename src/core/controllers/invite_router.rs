@@ -36,7 +36,8 @@ impl ICRUDController<CreateInviteRequestData, Invite> for InviteCRUDController {
     }
     
     async fn check_perm_create(state : &AppState, executor_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+        let (admin_or_moderator, _) = Self::only_for_admin_or_moderator(state, executor_id).await;
+        return admin_or_moderator;
     }
     
     async fn check_perm_get(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
@@ -47,7 +48,7 @@ impl ICRUDController<CreateInviteRequestData, Invite> for InviteCRUDController {
         let is_user = Self::is_executor_user(state, executor_id).await;
         if is_user { return None; }
 
-        let admin_or_moderator = Self::only_for_admin_or_moderator(state, executor_id).await;
+        let (admin_or_moderator, _) = Self::only_for_admin_or_moderator(state, executor_id).await;
         if admin_or_moderator {
             let db_service = SQLiteDbService::new(state);
             return  db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;

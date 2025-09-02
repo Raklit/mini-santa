@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController}, services::{IDbService, SQLiteDbService}}, santa::{data_model::implementations::Pool, services::{row_to_pool, user_create_pool}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -14,6 +14,24 @@ pub struct CreatePoolRequestData {
 }
 
 pub struct PoolCRUDController {}
+
+impl PoolCRUDController {
+    async fn basic_check_owner(state : &AppState, executor_id : &str, object_id : &str) -> (Option<bool>, WhoIsExecutor) {
+        let (basic_check, role) = Self::basic_check_perm(state, executor_id).await;
+        if basic_check.is_some() { return (basic_check, role); }
+        
+        let db_service = SQLiteDbService::new(state);
+
+        let pool_opt = db_service.get_one_by_prop(Self::table_name().as_str(), "id", object_id, Self::transform_func()).await;
+        if pool_opt.is_none() { return (Some(true), WhoIsExecutor::NoMatter); }
+        let pool = pool_opt.unwrap();
+
+        let is_resource_owner = pool.account_id() == executor_id;
+        if is_resource_owner { return (None, WhoIsExecutor::ResourceOwner); }
+
+        return (None, WhoIsExecutor::Other);
+    }
+}
 
 impl PoolCRUDController {}
 
@@ -46,12 +64,33 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
         return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
     }
     
-    async fn check_perm_update(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_update(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() { return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+
+        if role == WhoIsExecutor::ResourceOwner {
+            return true;
+        }
+
+        return false;
     }
     
-    async fn check_perm_delete(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_delete(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() { return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+        
+        let db_service = SQLiteDbService::new(state);
+        let pool_opt = db_service.get_one_by_prop(Self::table_name().as_str(), "id", object_id, Self::transform_func()).await;
+        if pool_opt.is_none() { return true; }
+        let pool = pool_opt.unwrap();
+
+        if role == WhoIsExecutor::ResourceOwner && pool.state() == PoolState::Ended {
+            return true;
+        }
+
+        return false;
     }
 }
 

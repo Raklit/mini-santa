@@ -2,10 +2,22 @@ use std::collections::HashMap;
 
 use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, HeaderValue, StatusCode}, response::IntoResponse, Json, Router};
 use futures::executor;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
 use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::{implementations::RolesUserInfo, traits::{ILocalObject, IRolesUserInfo}}, services::{escape_string, row_to_role, row_to_roles_user_info, IDbService, SQLiteDbService}}, AppState};
+
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
+pub enum WhoIsExecutor {
+    Nobody = 0,
+    Other = 1,
+    NoMatter = 2,
+    Admin = 3,
+    Moderator = 4,
+    ResourceOwner = 5,
+    PoolOwner = 6
+}
 
 pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O : ILocalObject + Serialize + Clone {
 
@@ -58,32 +70,32 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
         return String::from(headers.get("account_id").unwrap().to_str().unwrap());
     }
 
-    async fn only_for_admin_or_moderator(state : &AppState, executor_id : &str) -> bool {
+    async fn only_for_admin_or_moderator(state : &AppState, executor_id : &str) -> (bool, WhoIsExecutor) {
         let is_admin = Self::is_executor_admin(state, executor_id).await;
         if is_admin {
-            return true;
+            return (true, WhoIsExecutor::Admin);
         }
 
         let is_moderator = Self::is_executor_moderator(state, executor_id).await;
         if is_moderator {
-            return true;
+            return (true, WhoIsExecutor::Moderator);
         }
 
-        return false;
+        return (false, WhoIsExecutor::Other);
     }
 
-    async fn basic_check_perm(state : &AppState, executor_id : &str) -> Option<bool> {
+    async fn basic_check_perm(state : &AppState, executor_id : &str) -> (Option<bool>, WhoIsExecutor) {
         let is_user = Self::is_executor_user(state, executor_id).await;
         if is_user {
-            return None;
+            return (None, WhoIsExecutor::Other);
         }
 
-        let is_admin_or_moderator = Self::only_for_admin_or_moderator(state, executor_id).await;
+        let (is_admin_or_moderator, role) = Self::only_for_admin_or_moderator(state, executor_id).await;
         if is_admin_or_moderator {
-            return Some(true);
+            return (Some(true), role);
         }
 
-        return Some(false);
+        return (Some(false), WhoIsExecutor::Nobody);
     }
 
     fn access_denied_response() -> impl IntoResponse {

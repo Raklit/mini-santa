@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController}, data_model::traits::ILocalObject, services::{IDbService, SQLiteDbService}}, santa::{data_model::implementations::Message, services::{row_to_member, row_to_message, row_to_room, user_send_message_to_room}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Message, Pool, Room}, traits::{IPool, IPoolRelated, IRoomRelated}}, services::{row_to_member, row_to_message, row_to_pool, row_to_room, user_send_message_to_room}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateMessageRequestData {
@@ -30,6 +30,41 @@ impl MessageCRUDController {
         let messages = db_service.get_many_by_prop(Self::table_name().as_str(), "room_id", rooms_ids, Self::transform_func()).await.unwrap_or(vec![]);
 
         return Some(messages); 
+    }
+
+    async fn get_message_room_and_pool_by_message_id(state : &AppState, message_id : &str) -> (Option<Message>, Option<Room>, Option<Pool>) {
+        let db_service = SQLiteDbService::new(state);
+
+        let message_opt = db_service.get_one_by_prop(Self::table_name().as_str(), "id", message_id, Self::transform_func()).await;
+        if message_opt.is_none() { return (None, None, None); }
+        let message = message_opt.clone().unwrap();
+
+        let room_opt = db_service.get_one_by_prop("rooms", "id", message.room_id(), row_to_room).await;
+        let pool_opt = db_service.get_one_by_prop("pools", "id", message.pool_id(), row_to_pool).await;
+
+        return (message_opt, room_opt, pool_opt);
+    }
+
+    async fn basic_check_owner(state : &AppState, executor_id : &str, object_id : &str) -> (Option<bool>, WhoIsExecutor) {
+        let (basic_check, role) = Self::basic_check_perm(state, executor_id).await;
+        if basic_check.is_some() { return (basic_check, role); }
+        
+        let (message_opt, room_opt, pool_opt) = Self::get_message_room_and_pool_by_message_id(state, object_id).await;
+        
+        if message_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+        if room_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+        if pool_opt.is_none() { return (Some(false), WhoIsExecutor::NoMatter); }
+
+        let message = message_opt.unwrap();
+        let pool = pool_opt.unwrap();
+
+        let is_resource_owner = message.account_id() == executor_id;
+        if is_resource_owner { return (None, WhoIsExecutor::ResourceOwner); }
+
+        let is_pool_owner = pool.account_id() == executor_id;
+        if is_pool_owner { return (None, WhoIsExecutor::PoolOwner); }
+
+        return (None, WhoIsExecutor::Other);
     }
 }
 
@@ -60,30 +95,55 @@ impl ICRUDController<CreateMessageRequestData, Message> for MessageCRUDControlle
     async fn filter_many(state : &AppState, executor_id : &str) -> Option<Vec<Message>> {
         let db_service = SQLiteDbService::new(state);
 
-        let is_admin = Self::is_executor_admin(state, executor_id).await;
-        if is_admin {
-            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
-        }
-
-        let is_moderator = Self::is_executor_moderator(state, executor_id).await;
-        if is_moderator {
-            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
-        }
-
         let is_user = Self::is_executor_user(state, executor_id).await;
         if is_user {
             return Self::filter_user_messages(state, executor_id).await;
         }
 
+        let (is_admin_or_moderator, _) = Self::only_for_admin_or_moderator(state, executor_id).await;
+
+
+        if is_admin_or_moderator {
+            return db_service.get_all(Self::table_name().as_str(), Self::transform_func()).await;
+        }
+
         return None;
     }
     
-    async fn check_perm_update(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_update(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() { return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+
+        let (_, _, pool_opt) = Self::get_message_room_and_pool_by_message_id(state, object_id).await;
+        if pool_opt.is_none() { return false; }
+        let pool = pool_opt.unwrap();
+
+        if role == WhoIsExecutor::ResourceOwner && pool.state() == PoolState::Started {
+            return true;
+        }
+
+        return false;
     }
     
-    async fn check_perm_delete(state : &AppState, executor_id : &str, _object_id : &str) -> bool {
-        return Self::only_for_admin_or_moderator(state, executor_id).await;
+    async fn check_perm_delete(state : &AppState, executor_id : &str, object_id : &str) -> bool {
+        let (basic_check, role) = Self::basic_check_owner(state, executor_id, object_id).await;
+        if basic_check.is_some() { return basic_check.unwrap(); }
+        if role == WhoIsExecutor::Other { return false; }
+
+        let (_, _, pool_opt) = Self::get_message_room_and_pool_by_message_id(state, object_id).await;
+        if pool_opt.is_none() { return false; }
+        let pool = pool_opt.unwrap();
+
+        if role == WhoIsExecutor::ResourceOwner && pool.state() == PoolState::Started {
+            return true;
+        }
+
+        if role == WhoIsExecutor::PoolOwner && pool.state() == PoolState::Ended {
+            return true;
+        }
+
+        return false;
     }
 }
 
