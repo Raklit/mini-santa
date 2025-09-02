@@ -21,7 +21,7 @@ impl IRolesUserInfo for RolesUserInfo {
         };
     }
 
-    fn role_id(&self) -> &str { self.id.as_str() }
+    fn role_id(&self) -> &str { self.role_id.as_str() }
 
     fn params(&self) -> &str { self.params.as_str() }
     
