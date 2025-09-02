@@ -26,6 +26,11 @@ impl ApiResponse {
         };
     }
 
+    pub fn error_from_str(err_msg : &str) -> Self {
+        let err_msg_string = String::from(err_msg);
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg_string).unwrap());
+    }
+
     pub fn is_ok(&self) -> bool {
         return self.status.eq(&ApiResponseStatus::OK);
     }

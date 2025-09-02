@@ -2,7 +2,7 @@ use axum::{routing::{delete, get, post, put}, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Member, Pool}, traits::{IPool, IPoolRelated}}, services::{row_to_member, row_to_pool, user_add_member_to_pool}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Member, Pool}, traits::{IPool, IPoolRelated}}, services::{row_to_member, row_to_pool, user_add_member_to_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateMemberRequestData {
@@ -60,7 +60,17 @@ impl ICRUDController<CreateMemberRequestData, Member> for MemberCRUDController {
 
     fn transform_func() -> fn(&SqliteRow) -> Member { return row_to_member; }
 
-    async fn create_object_and_return_id(obj : CreateMemberRequestData, state : &AppState) -> ApiResponse {
+    async fn create_object_and_return_id(executor_id : &str, obj : CreateMemberRequestData, state : &AppState) -> ApiResponse {
+        let (basic_check, role) = Self::basic_check_perm(state, executor_id).await;
+        if basic_check.is_some_and(|b| {!b}) { 
+           return Self::acting_like_another_user_api_response();
+        }
+        if role == WhoIsExecutor::Other {
+            return Self::acting_like_another_user_api_response();
+        }
+        if obj.account_id.as_str() != executor_id {
+            return Self::acting_like_another_user_api_response();
+        }
         let wishlist = obj.wishlist.unwrap_or(String::new());
         return user_add_member_to_pool(obj.account_id.as_str(), obj.pool_id.as_str(), wishlist.as_str(), state).await;
     }

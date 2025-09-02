@@ -42,7 +42,7 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
 
     fn transform_func() -> fn(&SqliteRow) -> Pool { return row_to_pool; }
 
-    async fn create_object_and_return_id(obj : CreatePoolRequestData, state : &AppState) -> ApiResponse {
+    async fn create_object_and_return_id(_executor_id : &str, obj : CreatePoolRequestData, state : &AppState) -> ApiResponse {
         return user_create_pool(obj.name.as_str(), obj.description.as_str(), obj.account_id.as_str(), obj.min_price, obj.max_price, state).await;
     }
 

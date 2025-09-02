@@ -1,11 +1,10 @@
 use std::collections::HashMap;
+use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Json, Router};
 
-use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, HeaderValue, StatusCode}, response::IntoResponse, Json, Router};
-use futures::executor;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::{implementations::RolesUserInfo, traits::{ILocalObject, IRolesUserInfo}}, services::{escape_string, row_to_role, row_to_roles_user_info, IDbService, SQLiteDbService}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::{traits::{ILocalObject, IRolesUserInfo}}, services::{escape_string, row_to_role, row_to_roles_user_info, IDbService, SQLiteDbService}}, AppState};
 
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Hash)]
@@ -98,14 +97,20 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
         return (Some(false), WhoIsExecutor::Nobody);
     }
 
-    fn access_denied_response() -> impl IntoResponse {
-        let err_msg = String::from("Access denied");
-        let resp = ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
-        return (StatusCode::FORBIDDEN, Json(resp)).into_response();
-
+    fn access_denied_api_response() -> ApiResponse {
+        return ApiResponse::error_from_str("Access denied");
     }
 
-    async fn get_objects_list_handler(State(state) : State<AppState>, headers : HeaderMap, request : Request<Body>) -> impl IntoResponse {
+    fn access_denied_response() -> impl IntoResponse {
+        let resp = Self::access_denied_api_response();
+        return (StatusCode::FORBIDDEN, Json(resp)).into_response();
+    }
+
+    fn acting_like_another_user_api_response() -> ApiResponse {
+       return ApiResponse::error_from_str("Can not acting like another user");
+    }
+
+    async fn get_objects_list_handler(State(state) : State<AppState>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
         let executor_id = Self::get_executor_id(headers).await;
         let objs_opt = Self::filter_many(&state, executor_id.as_str()).await;
         let objs = objs_opt.unwrap_or(vec![]);
@@ -113,7 +118,7 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
         return (StatusCode::OK, Json(resp)).into_response();
     }
 
-    async fn get_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, request : Request<Body>) -> impl IntoResponse {
+    async fn get_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
         let executor_id = Self::get_executor_id(headers).await;
         let object_id = escape_string(id.as_str());
 
@@ -157,7 +162,7 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
             return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
         }
         let obj = obj_wrap.unwrap();
-        resp = Self::create_object_and_return_id(obj, &state).await;
+        resp = Self::create_object_and_return_id(executor_id.as_str(), obj, &state).await;
         if resp.is_ok() {
             return (StatusCode::OK, Json(resp)).into_response();
         } else {
@@ -165,7 +170,7 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
         }
     }
 
-    async fn create_object_and_return_id(obj : T, state : &AppState) -> ApiResponse;
+    async fn create_object_and_return_id(executor_id : &str, obj : T, state : &AppState) -> ApiResponse;
 
     async fn update_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, Json(json) : Json<HashMap<String, serde_json::Value>>) -> impl IntoResponse {
         let executor_id = Self::get_executor_id(headers).await;
@@ -214,7 +219,7 @@ pub trait ICRUDController<T, O> where T : DeserializeOwned + Send + 'static, O :
         return (StatusCode::OK, Json(resp)).into_response();
     }
 
-    async fn delete_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, request : Request<Body>) -> impl IntoResponse {
+    async fn delete_object_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
         let executor_id = Self::get_executor_id(headers).await;
         let object_id = escape_string(id.as_str());
 

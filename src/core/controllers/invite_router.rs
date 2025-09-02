@@ -1,5 +1,4 @@
 use axum::{routing::{delete, get, post, put}, Router};
-use futures::executor;
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
@@ -20,7 +19,7 @@ impl ICRUDController<CreateInviteRequestData, Invite> for InviteCRUDController {
 
     fn transform_func() -> fn(&SqliteRow) -> Invite { return row_to_invite; }
 
-    async fn create_object_and_return_id(obj : CreateInviteRequestData, state : &AppState) -> ApiResponse {        
+    async fn create_object_and_return_id(_executor_id : &str, obj : CreateInviteRequestData, state : &AppState) -> ApiResponse {        
         let invite_code = obj.invite_code.unwrap_or(String::new());
         let one_use = obj.one_use.unwrap_or(true);
         return user_create_invite_code(invite_code.as_str() ,one_use, state).await;

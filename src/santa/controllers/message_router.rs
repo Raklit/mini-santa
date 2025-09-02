@@ -75,8 +75,19 @@ impl ICRUDController<CreateMessageRequestData, Message> for MessageCRUDControlle
 
     fn transform_func() -> fn(&SqliteRow) -> Message { return row_to_message; }
 
-    async fn create_object_and_return_id(obj : CreateMessageRequestData, state : &AppState) -> ApiResponse {
-        return user_send_message_to_room(obj.room_id.as_str(), obj.account_id.as_str(), obj.text_content.as_str(), state).await;
+    async fn create_object_and_return_id(executor_id : &str, obj : CreateMessageRequestData, state : &AppState) -> ApiResponse {
+        let account_id = obj.account_id.as_str();
+
+        let (basic_check, _) = Self::basic_check_perm(state, executor_id).await;
+        if basic_check.is_some_and(|b| {b}) {
+            return user_send_message_to_room(obj.room_id.as_str(), account_id, obj.text_content.as_str(), state).await;
+        }
+
+        if account_id != executor_id {
+            return Self::acting_like_another_user_api_response();
+        }
+
+        return user_send_message_to_room(obj.room_id.as_str(), account_id, obj.text_content.as_str(), state).await;
     }
 
     fn objects_router(_ : &AppState) -> Router<AppState> {
