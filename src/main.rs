@@ -68,6 +68,7 @@ pub fn no_auth_api_router() -> Router<AppState> {
 pub fn ui_router() -> Router<AppState> {
     return Router::new()
         .route("/", get(spa_handler))
+        .route("/sign_up", get(spa_handler))
         .route("/login", get(spa_handler))
         .route("/profile", get(spa_handler))
         .route("/pools", get(spa_handler))

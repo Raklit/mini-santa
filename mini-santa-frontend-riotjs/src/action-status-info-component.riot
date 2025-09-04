@@ -1,0 +1,28 @@
+<action-status-info-component>
+<div if={visible} onclick="{hideInfo}">
+    <p>{text}</p>
+</div>
+<script lang="js">
+    let text = "";
+    let visible = false;
+
+    function showInfo(message) {
+        const items = this.$$("div");
+        items.forEach((item) => item.remove());
+        this.update();
+        this.text = message;
+        this.visible = true;
+        this.update();
+    }
+
+    function hideInfo() {
+        this.text = "";
+        this.visible = false;
+        this.unmount();
+    }
+    export default {
+        text, visible,
+        showInfo, hideInfo
+    }
+</script>
+</action-status-info-component>

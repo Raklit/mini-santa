@@ -1,4 +1,5 @@
 import ClientOAuth2 from "client-oauth2";
+import InfoHandler from "./info-handler.js";
 
 function getClient(scopes = ["read, write"]) {
     return new ClientOAuth2({
@@ -38,6 +39,27 @@ async function logout() {
     localStorage.removeItem("expires");
 }
 
+async function signup(login, password, confirmPassword, nickname, email, inviteCode) {
+    let body = {
+        "login" : login,
+        "password" : password,
+        "confirm_password" : confirmPassword,
+        "nickname" : nickname,
+        "email" : email,
+        "invite_code" : inviteCode
+    };
+    let params = {method: "POST", headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)};
+    try {
+        let response = await fetch('http://localhost:8080/api/sign_up', params);
+        let resp_json = await response.json();
+        InfoHandler.triggerInfo(resp_json.body);
+    } catch (error) {
+        InfoHandler.triggerInfo("Network error while sending request");
+        console.log(error.message);
+    }
+
+}
+
 async function getAccessToken() {
     const now = new Date();
     const expires = localStorage.getItem('expires');
@@ -56,5 +78,5 @@ async function sendRequest(url, params = {method: 'GET', headers: new Map()}) {
     return await fetch(url, params);
 }
 
-export default { getClient, loginByPassword, refreshTokens, getAccessToken, logout, sendRequest };
+export default { getClient, loginByPassword, refreshTokens, getAccessToken, logout, signup, sendRequest };
 

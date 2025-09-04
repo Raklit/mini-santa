@@ -1,0 +1,47 @@
+<signup-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <form onsubmit="{onSignUpClick}">
+                <fieldset>
+                    <label for="login" class="label-inline">Login</label>
+                    <input type="text" id="login" name="login" placeholder="Enter your login">
+                    <label for="password" class="label-inline">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password">
+                    <label for="confirm-password" class="label-inline">Password</label>
+                    <input type="password" id="confirm-password" name="confirm_password" placeholder="Enter your password again">
+                    <label for="email" class="label-inline">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email">
+                    <label for="nickname" class="label-inline">Nickname</label>
+                    <input type="text" id="nickname" name="nickname" placeholder="Enter your nickname">
+                    <label for="invite-code" class="label-inline">Invite code</label>
+                    <input type="text" id="invite-code" name="invite_code" placeholder="Enter your invite code">
+                    <input type="submit" value="Sign Up" id="signup-button" class="button-primary" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import AuthHelper from '../auth-helper.js';
+
+    let message = "";
+    let visible = "";
+
+    async function onSignUpClick(e) {
+        e.preventDefault();
+
+        const login = document.getElementById("login").value;
+        const password = document.getElementById("password").value;
+        const confirmPassword = document.getElementById("confirm-password").value;
+        const email = document.getElementById("email").value;
+        const nickname = document.getElementById("nickname").value;
+        const inviteCode = document.getElementById("invite-code").value;
+        await AuthHelper.signup(login, password, confirmPassword, nickname, email, inviteCode);
+        return false;
+    }
+
+    this.onSignUpClick = onSignUpClick;
+
+</script>
+</signup-page>
