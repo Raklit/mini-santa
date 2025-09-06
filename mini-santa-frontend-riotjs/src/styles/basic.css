@@ -1,3 +1,45 @@
+:root {
+    --min-screen-width: 450px;
+    --back-color: #ffffff;
+    --fore-color: #000000;
+    --alt-back-color: #9b4dca;
+    --alt-fore-color: #ffffff;
+}
+
 #root {
-    min-width: 450px;
+    min-width: var(--min-screen-width);
+}
+
+.action-status-info-block {
+    width: fit-content;
+    height: 15rem;
+    padding: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: var(--alt-back-color);
+    color: var(--alt-fore-color);
+}
+
+.close-hint-block {
+    width: fit-content;
+    height: fit-content;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.close-hint-block button {
+    background-color: var(--alt-back-color);
+    color: var(--alt-fore-color);
+    margin: 0;
+    padding: 3rem;
+    padding-top: 0;
+    padding-right: 0;
+
+}
+
+.info-block {
+    width: var(--min-screen-width);
+    height: 10rem;
+    overflow-y: auto;
+    padding-top: 1rem;
 }

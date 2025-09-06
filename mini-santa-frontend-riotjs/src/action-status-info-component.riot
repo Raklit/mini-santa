@@ -1,6 +1,9 @@
 <action-status-info-component>
-<div if={visible} onclick="{hideInfo}">
-    <p>{text}</p>
+<div if={visible} class="action-status-info-block">
+    <div class="close-hint-block"><button onclick="{hideInfo}">X</button></div>
+    <div onclick="{hideInfo}" class="info-block">
+        <p>{text}</p>
+    </div>
 </div>
 <script lang="js">
     let text = "";
@@ -8,7 +11,7 @@
 
     function showInfo(message) {
         const items = this.$$("div");
-        items.forEach((item) => item.remove());
+        items.forEach((item) => {item.remove();});
         this.update();
         this.text = message;
         this.visible = true;
