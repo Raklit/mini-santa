@@ -1,36 +1,68 @@
-import ClientOAuth2 from "client-oauth2";
 import InfoHandler from "./info-handler.js";
 
-function getClient(scopes = ["read, write"]) {
-    return new ClientOAuth2({
-            clientId: 'api',
-            accessTokenUri: 'http://localhost:8080/oauth/token',
-            authorizationUri: 'http://localhost:8080/login',
-            redirectUri: 'http://localhost:8080/',
-            scopes: scopes
-        });
+function apiBaseUrl() {
+    return "http://localhost:8080";
 }
 
+const baseUrl = apiBaseUrl();
+
 async function loginByPassword(login, password) {
-    const authClient = getClient();
-    const response = await authClient.owner.getToken(login, password);
-    if (!response || !response.accessToken || !response.refreshToken || !response.expires) { return; }
-    localStorage.setItem('refresh_token', response.refreshToken);
-    localStorage.setItem('access_token', response.accessToken);
-    localStorage.setItem('expires', response.expires);
+    const body = {
+        'grant_type': 'password',
+        'username': login,
+        'password': password,
+        'client_id': 'api'
+    };
+    
+    const headers = new Map();
+    headers.set('Content-Type', 'application/x-www-form-urlencoded');
+
+    const params = {
+        method: 'POST',
+        headers: headers,
+        body: new URLSearchParams(body).toString()
+    };
+
+    const response = await fetch(`${baseUrl}/oauth/token`, params);
+    const resp_json = await response.json();
+
+    if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { return; }
+    
+    let expires = new Date();
+    expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+    localStorage.setItem('refresh_token', resp_json["refresh_token"]);
+    localStorage.setItem('access_token', resp_json["access_token"]);
+    localStorage.setItem('expires', expires);
 }
 
 
 async function refreshTokens() {
-    const authClient = getClient();
-    const accessToken = localStorage.getItem('access_token');
     const refreshToken = localStorage.getItem('refresh_token');
-    let token = authClient.createToken(accessToken, refreshToken, 'bearer', {data: ''});
-    const response = await token.refresh();
-    if (!response || !response.accessToken || !response.refreshToken || !response.expires) { return; }
-    localStorage.setItem('refresh_token', response.refreshToken);
-    localStorage.setItem('access_token', response.accessToken);
-    localStorage.setItem('expires', response.expires);
+    const body = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refreshToken,
+        'client_id': 'api'
+    };
+
+    const headers = new Map();
+    headers.set('Content-Type', 'application/x-www-form-urlencoded');
+
+    const params = {
+        method: 'POST',
+        headers: headers,
+        body: new URLSearchParams(body).toString()
+    };
+
+    const response = await fetch(`${baseUrl}/oauth/token`, params);
+    const resp_json = await response.json();
+    
+    if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { return; }
+    
+    let expires = new Date();
+    expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+    localStorage.setItem('refresh_token', resp_json["refresh_token"]);
+    localStorage.setItem('access_token', resp_json["access_token"]);
+    localStorage.setItem('expires', expires);
 }
 
 async function logout() {
@@ -49,14 +81,7 @@ async function signup(login, password, confirmPassword, nickname, email, inviteC
         "invite_code" : inviteCode
     };
     let params = {method: "POST", headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)};
-    try {
-        let response = await fetch('http://localhost:8080/api/sign_up', params);
-        let resp_json = await response.json();
-        InfoHandler.triggerInfo(resp_json.body);
-    } catch (error) {
-        InfoHandler.triggerInfo("Network error while sending request");
-        console.log(error.message);
-    }
+    return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params);
 
 }
 
@@ -66,6 +91,7 @@ async function getAccessToken() {
     if (expires <= now) {
         await refreshTokens();
     }
+    console.log(localStorage.getItem('access_token'));
     return localStorage.getItem('access_token');
 }
 
@@ -78,5 +104,21 @@ async function sendRequest(url, params = {method: 'GET', headers: new Map()}) {
     return await fetch(url, params);
 }
 
-export default { getClient, loginByPassword, refreshTokens, getAccessToken, logout, signup, sendRequest };
+async function sendRequestWithStatusHandler(url, params = {method: 'GET', headers: new Map()}, showResultOnOk = false) {
+    try {
+        const response = await sendRequest(url, params);
+        const resp_json = await response.json();
+        if (showResultOnOk || resp_json.status != 'OK') {
+            InfoHandler.triggerInfo(JSON.stringify(resp_json));
+        }
+        return resp_json;
+    } catch (error) {
+        InfoHandler.triggerInfo("Network error while sending request");
+        console.error(error.message);
+    }
+    return null;
+}
+
+
+export default { apiBaseUrl, loginByPassword, refreshTokens, getAccessToken, logout, signup, sendRequest, sendRequestWithStatusHandler };
 

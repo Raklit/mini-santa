@@ -1,11 +1,7 @@
 <index-page>
     <p>Hello, {title}!</p>
     <script lang="js">
-        import AuthHelper from '../auth-helper.js';
-
-        async function getNickname() {
-            return await AuthHelper.sendRequest("http://localhost:8080/api/users/my_nickname");
-        }
+        import ApiHelper from '../api-helper.js';
 
         let title = "guest";
 
@@ -13,8 +9,8 @@
             title,
             async onMounted() {
                 try {
-                    let response = await getNickname();
-                    let nickname = await response.text();
+                    let resp_json = await ApiHelper.getNickname();
+                    let nickname = resp_json.body;
                     this.title = `user with nickname \"${nickname}\"`;
                     this.update();
                 } catch (error) {

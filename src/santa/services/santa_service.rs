@@ -1,13 +1,19 @@
 use chrono::Utc;
 use ::rand::{seq::SliceRandom, rng};
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{get_account_by_id, is_account_already_exists_by_id}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{get_account_by_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
     let creation_date = Utc::now();
     let new_id = new_id_safe(is_pool_already_exists_by_id, state).await;
     let pool_id = new_id.as_str();
+    let db_service = SQLiteDbService::new(state);
+    let name_exists = db_service.exists_by_prop("pools", "name", name).await;
+    if name_exists.is_some_and(|b| {b}) {
+        let err_msg = format!("Pool with name \"{name}\" already exists");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
     create_pool(pool_id, name, description, account_id, min_price, max_price, 2000000, creation_date, PoolState::Created, state).await;
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());
 }

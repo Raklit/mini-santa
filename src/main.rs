@@ -73,7 +73,8 @@ pub fn ui_router() -> Router<AppState> {
         .route("/profile", get(spa_handler))
         .route("/pools", get(spa_handler))
         .route("/chats", get(spa_handler))
-        .route("/logout", get(spa_handler));
+        .route("/logout", get(spa_handler))
+        .route("/create_pool", get(spa_handler));
 }
 
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {

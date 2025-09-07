@@ -6,6 +6,8 @@ import SignUpPage from './pages/signup-page.riot';
 import LoginPage from './pages/login-page.riot';
 import IndexPage from './pages/index-page.riot';
 
+import CreatePoolPage from './pages/create-pool-page.riot';
+
 import ActionStatusInfoComponent from './action-status-info-component.riot';
 import BaseLayout from './base-layout.riot';
 
@@ -24,6 +26,8 @@ riot.register('route', Route);
 riot.register("signup-page", SignUpPage);
 riot.register("login-page", LoginPage);
 riot.register("index-page", IndexPage);
+
+riot.register("create-pool-page", CreatePoolPage);
 
 riot.register("action-status-info-component", ActionStatusInfoComponent);
 riot.register("base-layout", BaseLayout);

@@ -3,8 +3,6 @@ import CssMinimizerPlugin from "css-minimizer-webpack-plugin";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import TerserPlugin from "terser-webpack-plugin";
 
-import qs from "querystring-es3";
-
 import webpack from "webpack";
 
 import { fileURLToPath } from 'url';
@@ -105,10 +103,5 @@ export default {
     }),
     new TerserPlugin(),
     new webpack.HotModuleReplacementPlugin(),
-  ],
-  resolve: {
-    alias: {
-      querystring: "querystring-es3"
-    }
-  }
+  ]
 };

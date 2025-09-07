@@ -6,7 +6,7 @@ use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, d
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateMemberRequestData {
-    pub account_id : String,
+    pub account_id : Option<String>,
     pub pool_id : String,
     pub wishlist : Option<String>
 }
@@ -61,6 +61,7 @@ impl ICRUDController<CreateMemberRequestData, Member> for MemberCRUDController {
     fn transform_func() -> fn(&SqliteRow) -> Member { return row_to_member; }
 
     async fn create_object_and_return_id(executor_id : &str, obj : CreateMemberRequestData, state : &AppState) -> ApiResponse {
+        let account_id = obj.account_id.unwrap_or(String::from(executor_id));
         let (basic_check, role) = Self::basic_check_perm(state, executor_id).await;
         if basic_check.is_some_and(|b| {!b}) { 
            return Self::acting_like_another_user_api_response();
@@ -68,11 +69,11 @@ impl ICRUDController<CreateMemberRequestData, Member> for MemberCRUDController {
         if role == WhoIsExecutor::Other {
             return Self::acting_like_another_user_api_response();
         }
-        if obj.account_id.as_str() != executor_id {
+        if account_id.as_str() != executor_id {
             return Self::acting_like_another_user_api_response();
         }
         let wishlist = obj.wishlist.unwrap_or(String::new());
-        return user_add_member_to_pool(obj.account_id.as_str(), obj.pool_id.as_str(), wishlist.as_str(), state).await;
+        return user_add_member_to_pool(account_id.as_str(), obj.pool_id.as_str(), wishlist.as_str(), state).await;
     }
 
     fn objects_router(_ : &AppState) -> Router<AppState> {

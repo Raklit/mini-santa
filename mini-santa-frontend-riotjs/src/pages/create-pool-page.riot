@@ -1,0 +1,44 @@
+<create-pool-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <form onsubmit="{onCreatePoolClick}">
+                <fieldset>
+                    <label for="name" class="label-inline">Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter new pool name">
+                    <label for="description" class="label-inline">Description</label>
+                    <input type="text" id="description" name="description" placeholder="Enter pool description">
+                    <label for="min-price">Min price</label>
+                    <input type="number" id="min-price" name="min_price" placeholder="Enter minimum gift price">
+                    <label for="max-price">Max price</label>
+                    <input type="number" id="max-price" name="max_price" placeholder="Enter maximum gift price">
+                    <input type="submit" value="Create Pool" id="create-pool-button" class="button-primary" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+    async function onCreatePoolClick(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value;
+        const description = document.getElementById('description').value;
+        const minPrice = Math.floor(document.getElementById('min-price').value);
+        const maxPrice = Math.ceil(document.getElementById('max-price').value);
+
+        try {
+            await ApiHelper.createPool(name, description, minPrice, maxPrice);
+        } catch (error) {
+            console.log('Access Token error: ', error.message);
+        }
+
+        return false;
+    }
+
+    this.onCreatePoolClick = onCreatePoolClick;
+
+</script>
+</create-pool-page>
