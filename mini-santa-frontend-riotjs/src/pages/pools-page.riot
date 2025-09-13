@@ -1,0 +1,68 @@
+<pools-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <h4>Pool list</h4>
+            <a href="{state.baseUrl}/create_pool">Create new pool</a>
+            <div class="container">
+                <div each={item in state.pools} class="row pool-row-block">
+                    <div class="column">
+                        <span><a href="{state.baseUrl}/pools/id/{item.id}">"{item.name}"</a><span>&nbsp;</span>({getStateFromNum(item.pool_state)})</span>
+                        <br>
+                        <b>Price</b>: {item.min_price} - {item.max_price}
+                        <details>
+                            <summary><b>Description</b></summary>
+                            {item.description}
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+    let state = {
+        baseUrl: ApiHelper.apiBaseUrl(),
+        pools: new Array()
+
+    };
+
+    const PoolState = {
+        Created: 0,
+        Open: 1,
+        Pooling: 2,
+        Started: 3,
+        Ended: 4
+    };
+
+    function getStateFromNum(num) {
+         const stateStrings = Object.keys(PoolState).reduce((acc, key) => {
+            acc[PoolState[key]] = key;
+            return acc;
+        }, {});
+        return stateStrings[num] || 'Unknown State';
+    }
+    
+    async function loadPools() {
+         try {
+            const resp_json = await ApiHelper.getPools();
+            if (resp_json.status == 'OK') {
+                this.state.pools = resp_json.body;
+                this.update();
+                console.log(this.state.pools);
+            }
+        } catch (error) {
+            console.log('Error while request: ', error.message);
+        }
+    }
+
+    export default {state,
+        async onMounted(props, state) {
+            await this.loadPools();
+        },
+        loadPools, getStateFromNum
+    }
+</script>
+</pools-page>

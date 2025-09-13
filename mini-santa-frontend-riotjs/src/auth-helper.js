@@ -91,7 +91,6 @@ async function getAccessToken() {
     if (expires <= now) {
         await refreshTokens();
     }
-    console.log(localStorage.getItem('access_token'));
     return localStorage.getItem('access_token');
 }
 

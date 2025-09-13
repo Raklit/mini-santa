@@ -7,6 +7,7 @@ import LoginPage from './pages/login-page.riot';
 import IndexPage from './pages/index-page.riot';
 
 import CreatePoolPage from './pages/create-pool-page.riot';
+import PoolsPage from './pages/pools-page.riot';
 
 import ActionStatusInfoComponent from './action-status-info-component.riot';
 import BaseLayout from './base-layout.riot';
@@ -17,6 +18,7 @@ import 'milligram/dist/milligram.min.css';
 import './styles/base-layout.css';
 
 import './styles/login.css';
+import './styles/pools.css';
 
 import './styles/basic.css';
 
@@ -28,6 +30,7 @@ riot.register("login-page", LoginPage);
 riot.register("index-page", IndexPage);
 
 riot.register("create-pool-page", CreatePoolPage);
+riot.register("pools-page", PoolsPage);
 
 riot.register("action-status-info-component", ActionStatusInfoComponent);
 riot.register("base-layout", BaseLayout);

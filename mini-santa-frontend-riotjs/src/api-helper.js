@@ -2,6 +2,8 @@ import AuthHelper from './auth-helper.js';
 
 const baseUrl = AuthHelper.apiBaseUrl();
 
+const apiBaseUrl = AuthHelper.apiBaseUrl;
+
 async function getId() {
     return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/users/my_id`);
 }
@@ -31,4 +33,4 @@ async function createPool(name, description, minPrice, maxPrice) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools`, params, true);
 }
 
-export default { getId, getNickname, getPools, createPool };
+export default { apiBaseUrl, getId, getNickname, getPools, createPool };

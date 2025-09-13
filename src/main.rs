@@ -12,6 +12,7 @@ use crate::santa::functions::santa_init_database;
 use crate::santa::services::row_to_message;
 
 use axum::middleware::from_fn_with_state;
+use axum::response::IntoResponse;
 use axum::routing::post;
 use axum:: {
     routing::get,

@@ -32,7 +32,7 @@
         try {
             await ApiHelper.createPool(name, description, minPrice, maxPrice);
         } catch (error) {
-            console.log('Access Token error: ', error.message);
+            console.log('Error while request: ', error.message);
         }
 
         return false;
