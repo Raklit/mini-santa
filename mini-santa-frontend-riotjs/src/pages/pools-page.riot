@@ -7,7 +7,7 @@
             <div class="container">
                 <div each={item in state.pools} class="row pool-row-block">
                     <div class="column">
-                        <span><a href="{state.baseUrl}/pools/id/{item.id}">"{item.name}"</a><span>&nbsp;</span>({getStateFromNum(item.pool_state)})</span>
+                        <span><a href="{state.baseUrl}/pools/id/{item.id}">"{item.name}"</a><span>&nbsp;</span>({getPoolStateFromNum(item.pool_state)})</span>
                         <br>
                         <b>Price</b>: {item.min_price} - {item.max_price}
                         <details>
@@ -29,21 +29,7 @@
 
     };
 
-    const PoolState = {
-        Created: 0,
-        Open: 1,
-        Pooling: 2,
-        Started: 3,
-        Ended: 4
-    };
-
-    function getStateFromNum(num) {
-         const stateStrings = Object.keys(PoolState).reduce((acc, key) => {
-            acc[PoolState[key]] = key;
-            return acc;
-        }, {});
-        return stateStrings[num] || 'Unknown State';
-    }
+    let getPoolStateFromNum = ApiHelper.getPoolStateFromNum;
     
     async function loadPools() {
          try {
@@ -62,7 +48,7 @@
         async onMounted(props, state) {
             await this.loadPools();
         },
-        loadPools, getStateFromNum
+        loadPools, getPoolStateFromNum
     }
 </script>
 </pools-page>

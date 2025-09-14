@@ -1,0 +1,41 @@
+<pool-details-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <div>
+                <h4>Pool info</h4>
+                <b>Name</b>: "{state?.pool?.name ?? ""}"<span>&nbsp;</span>({state?.pool?.pool_state_desc ?? ""})
+                <br>
+                <b>Price</b>: {state?.pool?.min_price ?? "X"} - {state?.pool?.max_price ?? "X"}
+                <br>
+                <b>Description</b>:
+                <p>{state?.pool?.description ?? ""}</p>
+            </div>
+        </div>
+    </div>
+</div>
+<script lang="js">
+import ApiHelper from '../api-helper.js';
+
+let state = {
+    pool: null
+};
+
+async function getPool(id) {
+    let resp_json = await ApiHelper.getPool(id);
+    if (resp_json.status == 'OK') {
+        this.state.pool = resp_json.body;
+        this.state.pool.pool_state_desc = ApiHelper.getPoolStateFromNum(this.state.pool.pool_state);
+        this.update();
+    }
+}
+
+export default {state,
+    async onMounted(props, state) {
+        console.log(props);
+        await this.getPool(props.object_id);
+    },
+    getPool
+};
+</script>
+</pool-details-page>

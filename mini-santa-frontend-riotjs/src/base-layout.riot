@@ -25,6 +25,7 @@
                     <route path="/logout"><logout-page></logout-page></route>
                     <route path="/sign_up"><signup-page></signup-page></route>
                     <route path="/pools"><pools-page></pools-page></route>
+                    <route path="/pools/id/:id"><pool-details-page object_id={route.params.id}></pool-details-page></route>
                     <route path="/create_pool"><create-pool-page></create-pool-page></route>
                 </div>
             </div>
