@@ -4,6 +4,7 @@ import App from './app.riot'
 
 import SignUpPage from './pages/signup-page.riot';
 import LoginPage from './pages/login-page.riot';
+import LogoutPage from './pages/logout-page.riot';
 import IndexPage from './pages/index-page.riot';
 
 import CreatePoolPage from './pages/create-pool-page.riot';
@@ -27,6 +28,7 @@ riot.register('route', Route);
 
 riot.register("signup-page", SignUpPage);
 riot.register("login-page", LoginPage);
+riot.register("logout-page", LogoutPage)
 riot.register("index-page", IndexPage);
 
 riot.register("create-pool-page", CreatePoolPage);

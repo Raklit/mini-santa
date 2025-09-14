@@ -1,4 +1,5 @@
 import InfoHandler from "./info-handler.js";
+import { router } from "@riotjs/route";
 
 function apiBaseUrl() {
     return "http://localhost:8080";
@@ -86,12 +87,27 @@ async function signup(login, password, confirmPassword, nickname, email, inviteC
 }
 
 async function getAccessToken() {
+    const needLogin = await goToLoginPageIfNeed();
+    if (needLogin) {
+        return null;
+    }
     const now = new Date();
     const expires = localStorage.getItem('expires');
     if (expires <= now) {
         await refreshTokens();
     }
     return localStorage.getItem('access_token');
+}
+
+async function goToLoginPageIfNeed() {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const expires = localStorage.getItem('expires');
+    if (!accessToken || !refreshToken || !expires) {
+        router.push("/login");
+        return true;
+    }
+    return false;
 }
 
 async function sendRequest(url, params = {method: 'GET', headers: new Map()}) {

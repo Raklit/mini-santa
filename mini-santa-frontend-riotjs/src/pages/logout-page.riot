@@ -1,0 +1,33 @@
+<logout-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <p>Your successfully log out</p>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import AuthHelper from '../auth-helper.js';
+    import { router } from "@riotjs/route";
+
+    let state = {
+        baseUrl: AuthHelper.apiBaseUrl(),
+        pools: new Array()
+
+    };
+    
+    async function logout() {
+        await AuthHelper.logout();
+        setTimeout(() => {
+            router.push("/login");
+        }, 3000);
+    }
+
+    export default {state,
+        async onMounted(props, state) {
+            await this.logout()
+        },
+        logout
+    }
+</script>
+</logout-page>
