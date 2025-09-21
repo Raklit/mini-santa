@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use sqlx::{sqlite::SqliteRow, Row};
 
-use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::{PoolState, RoomState}, implementations::{Pool, Room}, traits::{IPool, IRoom}}, AppState};
+use crate::{core::services::{IDbService, SQLiteDbService}, santa::data_model::{enums::PoolState, implementations::Pool, traits::IPool}, AppState};
 
 pub fn row_to_pool(row : &SqliteRow) -> Pool {
     let id : &str = row.get("id");
@@ -21,63 +21,50 @@ pub fn row_to_pool(row : &SqliteRow) -> Pool {
 }
 
 pub async fn get_pool_by_id(id : &str, state : &AppState) -> Option<impl IPool> {
-    const GET_POOL_BY_ID_TEMPLATE : &str = "database_scripts/pool/get_pool_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    
-    let command = render_query_template(GET_POOL_BY_ID_TEMPLATE, &context, &state).await;
-    return get_one_item_from_command(command.as_str(), state, row_to_pool).await;
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("pools", "id", id, row_to_pool).await;
 }
 
 pub async fn get_pools_by_account_id(account_id : &str, state : &AppState) -> Option<Vec<impl IPool>> {
-    const GET_POOLS_BY_ACCOUNT_ID_TEMPLATE : &str = "database_scripts/pool/get_pools_by_account_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("account_id", &account_id);
-    
-    let command = render_query_template(GET_POOLS_BY_ACCOUNT_ID_TEMPLATE, &context, &state).await;
-    return get_many_items_from_command(command.as_str(), state, row_to_pool).await;
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_many_by_prop("pools", "account_id", vec![account_id], row_to_pool).await;
 }
 
 pub async fn set_pool_state(id : &str, pool_state : PoolState, state : &AppState) -> () {
     let pool_state_num = pool_state as usize;
-    const SET_POOL_STATE_TEMPLATE : &str = "database_scripts/pool/set_pool_state.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", id);
-    context.insert("pool_state", &pool_state_num);
-    
-    execute_script_template_wo_return(SET_POOL_STATE_TEMPLATE, &context, state).await;
+    let pool_state_string = pool_state_num.to_string();
+    let pool_state_str = pool_state_string.as_str();
+
+    let db_service = SQLiteDbService::new(state);
+    db_service.update("pools", "id", id, vec!["pool_state"], vec![pool_state_str]).await;
 }
 
-pub async fn is_pool_already_exists_by_id(id : &str, state : &AppState) -> bool {
-    const EXISTS_POOL_BY_ID_TEMPLATE : &str = "database_scripts/pool/exists_pool_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    let command = render_query_template(EXISTS_POOL_BY_ID_TEMPLATE, &context, &state).await;
-    return command_result_exists(command.as_str(), &state).await;
+pub async fn is_pool_already_exists_by_id(id : &str, state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    return db_service.exists_by_prop("pools", "id", id).await;
 }
 
 pub async fn create_pool(id : &str, name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, lifetime : u64, creation_date : DateTime<Utc>, pool_state : PoolState,  state : &AppState) -> () {
     let pool_state_num = pool_state as usize;
+    
+    let pool_state_string = pool_state_num.to_string();
+    let pool_state_str = pool_state_string.as_str();
+    let creation_date_string = creation_date.to_rfc3339();
+    let creation_date_str = creation_date_string.as_str();
+    let min_price_string = min_price.to_string();
+    let min_price_str = min_price_string.as_str();
+    let max_price_string = max_price.to_string();
+    let max_price_str = max_price_string.as_str();
+    let lifetime_string = lifetime.to_string();
+    let lifetime_str = lifetime_string.as_str();
 
-    let mut context = tera::Context::new();
-     context.insert("id", id);
-     context.insert("name", name);
-     context.insert("description", description);
-     context.insert("account_id", account_id);
-     context.insert("min_price", &min_price);
-     context.insert("max_price", &max_price);
-     context.insert("lifetime", &lifetime);
-     context.insert("creation_date", &creation_date);
-     context.insert("pool_state", &pool_state_num);
-
-     const CREATE_POOL_TEMPLATE : &str = "database_scripts/pool/create_pool.sql";
-     execute_script_template_wo_return(CREATE_POOL_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.insert("pools", 
+    vec!["id", "name", "description", "account_id", "min_price", "max_price", "lifetime", "creation_date", "pool_state"],
+    vec![vec![id, name, description, account_id, min_price_str, max_price_str, lifetime_str, creation_date_str, pool_state_str]]).await;
 }
 
 pub async fn delete_pool_by_id(id : &str, state : &AppState) -> () {
-    let mut context = tera::Context::new();
-     context.insert("id", id);
- 
-     const DELETE_POOL_TEMPLATE : &str = "database_scripts/pool/delete_pool_by_id.sql";
-     execute_script_template_wo_return(DELETE_POOL_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    db_service.delete_one_by_prop("pools", "id", id).await;
 }

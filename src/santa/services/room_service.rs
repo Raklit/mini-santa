@@ -1,6 +1,6 @@
 use sqlx::{sqlite::SqliteRow, Row};
 
-use crate::{core::functions::{command_result_exists, execute_script_template_wo_return, get_many_items_from_command, get_one_item_from_command, render_query_template}, santa::data_model::{enums::RoomState, implementations::Room, traits::IRoom}, AppState};
+use crate::{core::services::{IDbService, SQLiteDbService}, santa::data_model::{enums::RoomState, implementations::Room, traits::IRoom}, AppState};
 
 pub fn row_to_room(row : &SqliteRow) -> Room {
     let id : &str = row.get("id");
@@ -13,69 +13,46 @@ pub fn row_to_room(row : &SqliteRow) -> Room {
 }
 
 pub async fn get_room_by_id(id : &str, state : &AppState) -> Option<impl IRoom> {
-    const GET_ROOM_BY_ID_TEMPLATE : &str = "database_scripts/room/get_room_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    
-    let command = render_query_template(GET_ROOM_BY_ID_TEMPLATE, &context, &state).await;
-    return get_one_item_from_command(command.as_str(), state, row_to_room).await;
+    let db_service = SQLiteDbService::new(state);
+    return db_service.get_one_by_prop("rooms", "id", id, row_to_room).await;
 }
 
 pub async fn get_rooms_by_pool_id(pool_id : &str, state : &AppState) -> Option<Vec<impl IRoom>> {
-    const GET_ROOMS_BY_POOL_ID_TEMPLATE : &str = "database_scripts/room/get_rooms_by_pool_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("pool_id", &pool_id);
-    
-    let command = render_query_template(GET_ROOMS_BY_POOL_ID_TEMPLATE, &context, &state).await;
-    return get_many_items_from_command(command.as_str(), state, row_to_room).await;
+   let db_service = SQLiteDbService::new(state);
+   return db_service.get_many_by_prop("rooms", "pool_id", vec![pool_id], row_to_room).await;
 }
 
 pub async fn get_rooms_by_account_id(account_id : &str, state : &AppState) -> Option<Vec<impl IRoom>> {
-    const GET_ROOMS_BY_ACCOUNT_ID_TEMPLATE : &str = "database_scripts/room/get_rooms_by_account_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("account_id", &account_id);
-    
-    let command = render_query_template(GET_ROOMS_BY_ACCOUNT_ID_TEMPLATE, &context, &state).await;
-    return get_many_items_from_command(command.as_str(), state, row_to_room).await;
+    let db_service = SQLiteDbService::new(state);
+   return db_service.get_many_by_prop("rooms", "account_id", vec![account_id], row_to_room).await;
 }
 
-pub async fn is_room_already_exists_by_id(id : &str, state : &AppState) -> bool {
-    const EXISTS_ROOM_BY_ID_TEMPLATE : &str = "database_scripts/room/exists_room_by_id.sql";
-    let mut context = tera::Context::new();
-    context.insert("id", &id);
-    let command = render_query_template(EXISTS_ROOM_BY_ID_TEMPLATE, &context, &state).await;
-    return command_result_exists(command.as_str(), state).await;
+pub async fn is_room_already_exists_by_id(id : &str, state : &AppState) -> Option<bool> {
+   let db_service = SQLiteDbService::new(state);
+   return db_service.exists_by_prop("rooms", "id", id).await;
 }
 
 pub async fn create_room(id : &str, pool_id : &str, mailer_id : &str, recipient_id : &str, room_state : RoomState, state : &AppState) -> () {
     let room_state_num = room_state as usize;
+    let room_state_string = room_state_num.to_string();
+    let room_state_str = room_state_string.as_str();
 
-    let mut context = tera::Context::new();
-     context.insert("id", id);
-     context.insert("pool_id", pool_id);
-     context.insert("mailer_id", mailer_id);
-     context.insert("recipient_id", recipient_id);
-     context.insert("room_state", &room_state_num);
- 
-     const CREATE_ROOM_TEMPLATE : &str = "database_scripts/room/create_room.sql";
-     execute_script_template_wo_return(CREATE_ROOM_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    let _ = db_service.insert("rooms",
+    vec!["id", "pool_id", "mailer_id", "recipient_id", "room_state"],
+    vec![vec![id, pool_id, mailer_id, recipient_id, room_state_str]]).await;
 }
 
 pub async fn set_room_state_by_id(id : &str, room_state : RoomState, state : &AppState) -> () {
     let room_state_num = room_state as usize;
-    
-    let mut context = tera::Context::new();
-     context.insert("id", id);
-     context.insert("room_state", &room_state_num);
- 
-     const SET_ROOM_STATE_TEMPLATE : &str = "database_scripts/room/set_room_state.sql";
-     execute_script_template_wo_return(SET_ROOM_STATE_TEMPLATE, &context, &state).await;
+    let room_state_string = room_state_num.to_string();
+    let room_state_str = room_state_string.as_str();
+
+    let db_service = SQLiteDbService::new(state);
+    db_service.update("rooms", "id", id, vec!["room_state"], vec![room_state_str]).await;
 }
 
 pub async fn delete_room_by_id(id : &str, state : &AppState) -> () {
-    let mut context = tera::Context::new();
-     context.insert("id", id);
- 
-     const DELETE_ROOM_TEMPLATE : &str = "database_scripts/room/delete_room_by_id.sql";
-     execute_script_template_wo_return(DELETE_ROOM_TEMPLATE, &context, &state).await;
+    let db_service = SQLiteDbService::new(state);
+    db_service.delete_one_by_prop("rooms", "id", id).await;
 }

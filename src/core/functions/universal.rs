@@ -105,12 +105,12 @@ pub async fn command_result_exists(command : &str, state : &AppState) -> bool {
     return val == 1;
 }
 
-pub async fn new_id_safe<F>(check_func : F, state : &AppState) -> String where F : for<'a, 'b> AsyncFn2<&'a str, &'b AppState, Output = bool> {
+pub async fn new_id_safe<F>(check_func : F, state : &AppState) -> String where F : for<'a, 'b> AsyncFn2<&'a str, &'b AppState, Output = Option<bool>> {
     let mut new_id : String;
     loop {
         new_id = generate_id().await;
         let is_object_id_already_exists = check_func(new_id.as_str(), state).await;
-        if !is_object_id_already_exists { break; }
+        if is_object_id_already_exists.is_some_and(|b| {!b}) { break; }
     }
     return new_id;
 }
