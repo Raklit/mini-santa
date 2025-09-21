@@ -10,6 +10,8 @@
                 <br>
                 <b>Description</b>:
                 <p>{state?.pool?.description ?? ""}</p>
+                <br>
+                <button onclick={onPushStateClick}>Push state</button>
                 <h4>Pool members</h4>
                 <div class="container">
                     <div each={item in state.members} class="row">
@@ -47,12 +49,16 @@ async function getPoolMemberNicknames(id) {
     }
 }
 
+async function onPushStateClick() {
+    await ApiHelper.pushPoolState(this.props.object_id);
+}
+
 export default {state,
     async onMounted(props, state) {
         await this.getPool(props.object_id);
         await this.getPoolMemberNicknames(props.object_id);
     },
-    getPool, getPoolMemberNicknames
+    getPool, getPoolMemberNicknames, onPushStateClick
 };
 </script>
 </pool-details-page>

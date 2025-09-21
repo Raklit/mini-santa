@@ -1,8 +1,9 @@
 use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{delete, get, post, put}, Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
+use tracing_subscriber::fmt::format;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool, user_get_member_nicknames_in_pool}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{get_pool_by_id, row_to_pool, user_create_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -30,6 +31,34 @@ impl PoolCRUDController {
         if is_resource_owner { return (None, WhoIsExecutor::ResourceOwner); }
 
         return (None, WhoIsExecutor::Other);
+    }
+
+    pub async fn user_get_member_nicknames_in_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, _headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let result = user_get_member_nicknames_in_pool(id.as_str(), &state).await;
+        if result.is_ok() {
+            return (StatusCode::OK, Json(result)).into_response()
+        } else {
+            return (StatusCode::BAD_REQUEST, Json(result)).into_response();
+        }
+    }
+
+    pub async fn user_push_pool_state_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let (basic_check, role) = PoolCRUDController::basic_check_owner(&state, executor_id, id.as_str()).await;
+        if basic_check.is_some_and(|b| {!b}) {
+           return Self::access_denied_response().into_response();
+        }
+
+        if role == WhoIsExecutor::Admin || role == WhoIsExecutor::Moderator || role == WhoIsExecutor::NoMatter || role == WhoIsExecutor::ResourceOwner {
+            let resp = user_pool_state_push(id.as_str(), &state).await;
+            if resp.is_ok() {
+                return (StatusCode::OK, Json(resp)).into_response();
+            } else {
+                return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+            }
+        }
+
+        return Self::access_denied_response().into_response();
     }
 }
 
@@ -95,18 +124,10 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
     }
 }
 
-pub async fn user_get_member_nicknames_in_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
-    let result = user_get_member_nicknames_in_pool(id.as_str(), &state).await;
-    if result.is_ok() {
-        return (StatusCode::OK, Json(result)).into_response()
-    } else {
-        return (StatusCode::BAD_REQUEST, Json(result)).into_response();
-    }
-}
-
 pub fn pool_router(state : &AppState) -> Router<AppState> {
     let router = Router::<AppState>::new()
-    .route("/id/{id}/members", get(user_get_member_nicknames_in_pool_handler));
+    .route("/id/{id}/members", get(PoolCRUDController::user_get_member_nicknames_in_pool_handler))
+    .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler));
     return PoolCRUDController::objects_router(state)
     .merge(router);
 }

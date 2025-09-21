@@ -1,6 +1,7 @@
 use chrono::Utc;
 use ::rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::fmt::format;
 
 use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::{execute_command_wo_return, new_id_safe}, services::{get_account_by_id, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
@@ -100,20 +101,29 @@ pub async fn user_delete_member_from_pool(pool_id : &str, account_id : &str, sta
     delete_member_by_id(member_id, state).await; 
 }
 
-pub async fn user_pool_state_push(pool_id : &str, state : &AppState) {
+pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiResponse {
     let pool_option = get_pool_by_id(pool_id, state).await;
-    if pool_option.is_none() { return; }
+    if pool_option.is_none() { 
+        let err_msg = format!("Pool with id \"{pool_id}\" not found");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
     let pool = pool_option.unwrap();
     let pool_state = pool.state();
     let next_pool_state_option = match pool_state {
-        PoolState::Created => Some(PoolState::Started),
-        PoolState::Started => Some(PoolState::Pooling),
-        PoolState::Pooling => Some(PoolState::Ended),
+        PoolState::Created => Some(PoolState::Open),
+        PoolState::Open => Some(PoolState::Pooling),
+        PoolState::Pooling => Some(PoolState::Started),
+        PoolState::Started => Some(PoolState::Ended),
         _ => None 
     };
-    if next_pool_state_option.is_none() { return; }
+    if next_pool_state_option.is_none() {
+        let err_msg = format!("Pool with id \"{pool_id}\" already ended");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+    }
     let next_pool_state = next_pool_state_option.unwrap();
     set_pool_state(pool_id, next_pool_state, state).await;
+    let msg = format!("Pool with id \"{pool_id}\" changed state");
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());  
 }
 
 pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
