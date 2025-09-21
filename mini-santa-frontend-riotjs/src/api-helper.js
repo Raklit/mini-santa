@@ -37,7 +37,11 @@ async function getPools() {
 }
 
 async function getPool(id) {
-    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}`)
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}`);
+}
+
+async function getPoolMemberNicknames(id) {
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/members`);
 }
 
 async function createPool(name, description, minPrice, maxPrice) {
@@ -57,4 +61,4 @@ async function createPool(name, description, minPrice, maxPrice) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools`, params, true);
 }
 
-export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, createPool };
+export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool };

@@ -66,9 +66,7 @@ impl ICRUDController<CreateMemberRequestData, Member> for MemberCRUDController {
         if basic_check.is_some_and(|b| {!b}) { 
            return Self::acting_like_another_user_api_response();
         }
-        if role == WhoIsExecutor::Other {
-            return Self::acting_like_another_user_api_response();
-        }
+        
         if account_id.as_str() != executor_id {
             return Self::acting_like_another_user_api_response();
         }

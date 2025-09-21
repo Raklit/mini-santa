@@ -57,7 +57,7 @@ pub async fn is_member_already_exists_by_pool_and_account_ids(pool_id : &str, ac
 
 pub async fn create_member(id : &str, account_id : &str, room_id : &str, pool_id : &str, wishlist : &str, state : &AppState) -> () {
     let db_service = SQLiteDbService::new(state);
-    let _ = db_service.insert("members", vec!["id", "account_id", "room_id", "pool_id"], vec![vec![id, account_id, room_id, pool_id, wishlist]]).await;
+    let _ = db_service.insert("members", vec!["id", "account_id", "room_id", "pool_id", "wishlist"], vec![vec![id, account_id, room_id, pool_id, wishlist]]).await;
 }
 
 pub async fn set_wishlist_by_id(id : &str, wishlist : &str, state : &AppState) -> () {

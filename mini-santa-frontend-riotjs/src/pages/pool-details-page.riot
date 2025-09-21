@@ -10,6 +10,14 @@
                 <br>
                 <b>Description</b>:
                 <p>{state?.pool?.description ?? ""}</p>
+                <h4>Pool members</h4>
+                <div class="container">
+                    <div each={item in state.members} class="row">
+                        <div class="column">
+                            <p>{item.nickname}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -18,7 +26,8 @@
 import ApiHelper from '../api-helper.js';
 
 let state = {
-    pool: null
+    pool: null,
+    members: []
 };
 
 async function getPool(id) {
@@ -30,12 +39,20 @@ async function getPool(id) {
     }
 }
 
+async function getPoolMemberNicknames(id) {
+    let resp_json = await ApiHelper.getPoolMemberNicknames(id);
+    if (resp_json.status == 'OK') {
+        this.state.members = resp_json.body;
+        this.update();
+    }
+}
+
 export default {state,
     async onMounted(props, state) {
-        console.log(props);
         await this.getPool(props.object_id);
+        await this.getPoolMemberNicknames(props.object_id);
     },
-    getPool
+    getPool, getPoolMemberNicknames
 };
 </script>
 </pool-details-page>

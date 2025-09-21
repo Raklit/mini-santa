@@ -1,8 +1,8 @@
-use axum::{routing::{delete, get, post, put}, Router};
+use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{delete, get, post, put}, Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool, user_get_member_nicknames_in_pool}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -95,6 +95,18 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
     }
 }
 
+pub async fn user_get_member_nicknames_in_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+    let result = user_get_member_nicknames_in_pool(id.as_str(), &state).await;
+    if result.is_ok() {
+        return (StatusCode::OK, Json(result)).into_response()
+    } else {
+        return (StatusCode::BAD_REQUEST, Json(result)).into_response();
+    }
+}
+
 pub fn pool_router(state : &AppState) -> Router<AppState> {
-    return PoolCRUDController::objects_router(state);
+    let router = Router::<AppState>::new()
+    .route("/id/{id}/members", get(user_get_member_nicknames_in_pool_handler));
+    return PoolCRUDController::objects_router(state)
+    .merge(router);
 }

@@ -37,7 +37,6 @@
             if (resp_json.status == 'OK') {
                 this.state.pools = resp_json.body;
                 this.update();
-                console.log(this.state.pools);
             }
         } catch (error) {
             console.log('Error while request: ', error.message);
