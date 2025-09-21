@@ -1,7 +1,7 @@
 use chrono::Utc;
 use ::rand::{seq::SliceRandom, rng};
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{get_account_by_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject}, functions::new_id_safe, services::{get_account_by_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_messages_by_room_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -38,6 +38,12 @@ pub async fn user_add_member_to_pool(account_id : &str, pool_id : &str, wishlist
 
     let new_id = new_id_safe(is_member_already_exists_by_id, state).await;
     
+    let member_exists = is_member_already_exists_by_pool_and_account_ids(pool_id, account_id, state).await;
+    if member_exists {
+        let err_msg = format!("User with account id \"{account_id}\" has already been added to pool with id \"{pool_id}\"");
+        return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
+    }
+
     create_member(new_id.as_str(), account_id, "", pool_id, wishlist, state).await;
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());
 }
