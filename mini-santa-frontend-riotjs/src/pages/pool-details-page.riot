@@ -12,6 +12,8 @@
                 <p>{state?.pool?.description ?? ""}</p>
                 <br>
                 <button onclick={onPushStateClick}>Push state</button>
+                <br>
+                <a href="/pools/id/{props.object_id}/add">Add me to pool</a>
                 <h4>Pool members</h4>
                 <div class="container">
                     <div each={item in state.members} class="row">

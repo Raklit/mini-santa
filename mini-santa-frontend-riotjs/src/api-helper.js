@@ -73,4 +73,20 @@ async function createPool(name, description, minPrice, maxPrice) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools`, params, true);
 }
 
-export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState };
+async function addToPool(pool_id, wishlist) {
+    const body = {
+        "pool_id" : pool_id, "wishlist" : wishlist
+    };
+
+    const headers = new Map();
+    headers.set('Content-Type', 'application/json');
+
+    const params = {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+    };
+    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/members`, params, true);
+}
+
+export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool };

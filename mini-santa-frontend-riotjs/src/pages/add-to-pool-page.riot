@@ -1,0 +1,41 @@
+<login-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <form onsubmit="{onAddToPoolClick}">
+                <fieldset>
+                    <label for="wishlist" class="label-inline">Wishlist</label>
+                    <input type="text" id="wishlist" name="wishlist" placeholder="Enter wishlist">
+                    <input type="submit" value="Add me to pool" id="add-to-pool-button" class="button-primary" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <p><a href="/pools/id/{props.object_id}">To pool details</a></p>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+    async function onAddToPoolClick(e) {
+        e.preventDefault();
+
+        const wishlist = document.getElementById("wishlist").value ?? "";
+        const pool_id = this.props.object_id;
+
+        try {
+            await ApiHelper.addToPool(pool_id, wishlist);
+        } catch (error) {
+            console.log('Error while request: ', error.message);
+        }
+
+        return false;
+    }
+
+    export default { onAddToPoolClick };
+
+</script>
+</login-page>

@@ -11,6 +11,7 @@ import PoolDetailsPage from './pages/pool-details-page.riot';
 
 import CreatePoolPage from './pages/create-pool-page.riot';
 import PoolsPage from './pages/pools-page.riot';
+import AddToPoolPage from './pages/add-to-pool-page.riot';
 
 import ActionStatusInfoComponent from './action-status-info-component.riot';
 import BaseLayout from './base-layout.riot';
@@ -25,6 +26,7 @@ import './styles/login.css';
 import './styles/signup.css';
 
 import './styles/pools.css';
+import './styles/add-to-pool.css';
 
 riot.register('router', Router);
 riot.register('route', Route);
@@ -36,6 +38,7 @@ riot.register("index-page", IndexPage);
 
 riot.register("create-pool-page", CreatePoolPage);
 riot.register("pool-details-page", PoolDetailsPage);
+riot.register("add-to-pool-page", AddToPoolPage);
 riot.register("pools-page", PoolsPage);
 
 riot.register("action-status-info-component", ActionStatusInfoComponent);
