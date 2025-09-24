@@ -18,12 +18,13 @@ import BaseLayout from './base-layout.riot';
 import 'normalize.css/normalize.css'
 import 'milligram/dist/milligram.min.css';
 
+import './styles/basic.css';
 import './styles/base-layout.css';
 
 import './styles/login.css';
-import './styles/pools.css';
+import './styles/signup.css';
 
-import './styles/basic.css';
+import './styles/pools.css';
 
 riot.register('router', Router);
 riot.register('route', Route);

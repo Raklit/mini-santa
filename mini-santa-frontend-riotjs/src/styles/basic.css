@@ -43,3 +43,9 @@
     overflow-y: auto;
     padding-top: 1rem;
 }
+
+.center-block {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
