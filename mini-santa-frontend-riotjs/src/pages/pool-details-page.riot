@@ -11,9 +11,20 @@
                 <b>Description</b>:
                 <p>{state?.pool?.description ?? ""}</p>
                 <br>
-                <button onclick={onPushStateClick}>Push state</button>
+                <div class="container">
+                    <div class="row">
+                        <div class="column">
+                            <button onclick={onPushStateClick}>Push state</button>
+                        </div>
+                        <div class="column">
+                            <a href="/pools/id/{props.object_id}/add" class="button">Add me to pool</a>
+                        </div>
+                        <div class="column">
+                            <button onclick="{removeCurrentUserFromPool}">Remove me from pool</button>
+                        </div>
+                    </div>
+                </div>
                 <br>
-                <a href="/pools/id/{props.object_id}/add">Add me to pool</a>
                 <h4>Pool members</h4>
                 <div class="container">
                     <div each={item in state.members} class="row">
@@ -55,12 +66,16 @@ async function onPushStateClick() {
     await ApiHelper.pushPoolState(this.props.object_id);
 }
 
+async function removeCurrentUserFromPool() {
+    await ApiHelper.removeCurrentUserFromPool(this.props.object_id);
+}
+
 export default {state,
     async onMounted(props, state) {
         await this.getPool(props.object_id);
         await this.getPoolMemberNicknames(props.object_id);
     },
-    getPool, getPoolMemberNicknames, onPushStateClick
+    getPool, getPoolMemberNicknames, onPushStateClick, removeCurrentUserFromPool
 };
 </script>
 </pool-details-page>

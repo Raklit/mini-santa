@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 use tracing_subscriber::fmt::format;
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{get_pool_by_id, row_to_pool, user_create_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{delete_member_by_id, get_member_by_pool_and_account_ids, get_pool_by_id, row_to_pool, user_create_pool, user_delete_member_from_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -59,6 +59,17 @@ impl PoolCRUDController {
         }
 
         return Self::access_denied_response().into_response();
+    }
+
+    pub async fn user_delete_member_from_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let esc_id_string = escape_string(id.as_str());
+        let pool_id= esc_id_string.as_str();
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        user_delete_member_from_pool(pool_id, executor_id, &state).await;
+        let msg = format!("Member with account id \"{executor_id}\" was successfully deleted from pool with id \"{pool_id}\"");
+        let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());
+        return (StatusCode::OK, Json(resp)).into_response();
+
     }
 }
 
@@ -127,7 +138,8 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
 pub fn pool_router(state : &AppState) -> Router<AppState> {
     let router = Router::<AppState>::new()
     .route("/id/{id}/members", get(PoolCRUDController::user_get_member_nicknames_in_pool_handler))
-    .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler));
+    .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler))
+    .route("/id/{id}/remove_me", delete(PoolCRUDController::user_delete_member_from_pool_handler));
     return PoolCRUDController::objects_router(state)
     .merge(router);
 }
