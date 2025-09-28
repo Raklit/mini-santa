@@ -93,12 +93,19 @@ pub async fn user_set_member_wishlist(pool_id : &str, account_id : &str, wishlis
     set_wishlist_by_id(member_id, wishlist, state).await;
 }
 
-pub async fn user_delete_member_from_pool(pool_id : &str, account_id : &str, state : &AppState) -> () {
+pub async fn user_delete_member_from_pool(pool_id : &str, account_id : &str, state : &AppState) -> ApiResponse {
     let member_option = get_member_by_pool_and_account_ids(pool_id, account_id, state).await;
-    if member_option.is_none() { return; }
+    if member_option.is_none() { 
+        let msg = format!("Member with account id \"{account_id}\" and pool id \"{pool_id}\" not found");
+        let resp = ApiResponse::new(ApiResponseStatus::WARNING, serde_json::to_value(msg).unwrap());
+        return resp;
+     }
     let member = member_option.unwrap();
     let member_id = member.id();
-    delete_member_by_id(member_id, state).await; 
+    delete_member_by_id(member_id, state).await;
+    let msg = format!("Member with account id \"{account_id}\" was successfully deleted from pool with id \"{pool_id}\"");
+    let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());
+    return resp; 
 }
 
 pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiResponse {
@@ -121,7 +128,11 @@ pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiRespo
         return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
     }
     let next_pool_state = next_pool_state_option.unwrap();
-    set_pool_state(pool_id, next_pool_state, state).await;
+    set_pool_state(pool_id, next_pool_state.clone(), state).await;
+    if next_pool_state == PoolState::Pooling {
+        user_make_rooms(pool_id, state).await;
+        set_pool_state(pool_id, PoolState::Started, state).await;
+    }
     let msg = format!("Pool with id \"{pool_id}\" changed state");
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());  
 }
@@ -290,7 +301,7 @@ fn make_pairs(vector : &Vec<&str>) -> Vec<[String; 2]> {
 
 pub async fn user_make_rooms(pool_id : &str, state : &AppState) -> () {
     let pool_option = get_pool_by_id(pool_id, state).await;
-    if !pool_option.is_none() { return; }
+    if pool_option.is_none() { return; }
     let pool = pool_option.unwrap();
     if PoolState::Pooling != pool.state() { return; }
     let members_option = get_members_by_pool_id(pool_id, state).await;

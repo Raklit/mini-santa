@@ -65,11 +65,8 @@ impl PoolCRUDController {
         let esc_id_string = escape_string(id.as_str());
         let pool_id= esc_id_string.as_str();
         let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
-        user_delete_member_from_pool(pool_id, executor_id, &state).await;
-        let msg = format!("Member with account id \"{executor_id}\" was successfully deleted from pool with id \"{pool_id}\"");
-        let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());
+        let resp = user_delete_member_from_pool(pool_id, executor_id, &state).await;
         return (StatusCode::OK, Json(resp)).into_response();
-
     }
 }
 
