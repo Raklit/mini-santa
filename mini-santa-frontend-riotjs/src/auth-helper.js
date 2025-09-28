@@ -81,7 +81,9 @@ async function signup(login, password, confirmPassword, nickname, email, inviteC
         "email" : email,
         "invite_code" : inviteCode
     };
-    let params = {method: "POST", headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)};
+    const headers = new Map();
+    headers.set('Content-Type', 'application/json');
+    let params = {method: "POST", headers: headers, body: JSON.stringify(body)};
     return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params);
 
 }
