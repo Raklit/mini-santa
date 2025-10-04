@@ -24,7 +24,17 @@ pub async fn get_rooms_by_pool_id(pool_id : &str, state : &AppState) -> Option<V
 
 pub async fn get_rooms_by_account_id(account_id : &str, state : &AppState) -> Option<Vec<impl IRoom>> {
     let db_service = SQLiteDbService::new(state);
-   return db_service.get_many_by_prop("rooms", "account_id", vec![account_id], row_to_room).await;
+    return db_service.get_many_by_prop("rooms", "account_id", vec![account_id], row_to_room).await;
+}
+
+pub async fn get_rooms_by_user(account_id : &str, state : &AppState) -> Option<Vec<impl IRoom>> {
+    let db_service = SQLiteDbService::new(state);
+    let mailer_rooms = db_service.get_many_by_prop("rooms", "mailer_id", vec![account_id], row_to_room).await.unwrap_or(vec![]);
+    let recipient_rooms = db_service.get_many_by_prop("rooms", "recipient_id", vec![account_id], row_to_room).await.unwrap_or(vec![]);
+    let mut result = Vec::<Room>::new();
+    result.extend(mailer_rooms);
+    result.extend(recipient_rooms);
+    return Some(result);
 }
 
 pub async fn is_room_already_exists_by_id(id : &str, state : &AppState) -> Option<bool> {

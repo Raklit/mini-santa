@@ -1,0 +1,47 @@
+<rooms-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <h4>Rooms list</h4>
+            <div class="container">
+                <div each={item in state.rooms} class="row pool-row-block">
+                    <div class="column">
+                        <span><a href="{state.baseUrl}/rooms/id/{item.id}">"{item.pool_name}"</a><span>&nbsp;</span>recipient "{item.recipient_nickname}"<span>&nbsp;</span>(room state {getRoomStateFromNum(item.room_state)})</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+    let state = {
+        baseUrl: ApiHelper.apiBaseUrl(),
+        rooms: new Array()
+
+    };
+
+    let getRoomStateFromNum = ApiHelper.getRoomStateFromNum;
+    
+    async function loadRooms() {
+         try {
+            const resp_json = await ApiHelper.getRooms();
+            console.log(resp_json);
+            if (resp_json.status == 'OK') {
+                this.state.rooms = resp_json.body;
+                this.update();
+            }
+        } catch (error) {
+            console.log('Error while request: ', error.message);
+        }
+    }
+
+    export default {state,
+        async onMounted(props, state) {
+            await this.loadRooms();
+        },
+        loadRooms, getRoomStateFromNum
+    }
+</script>
+</rooms-page>

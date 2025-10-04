@@ -13,7 +13,6 @@ function poolState() {
         Ended: 4
     };
 }
-
 const PoolState = poolState();
 
 function getPoolStateFromNum(num) {;
@@ -23,6 +22,29 @@ function getPoolStateFromNum(num) {;
     }, {});
     return stateStrings[num] || 'Unknown State';
 }
+
+function roomState() {
+    return {
+        ChoosingAGift: 0,
+        BuyingAGift: 1,
+        MailerAwaitingGiftDelivery: 2,
+        GiftDeliveredToMailer: 3,
+        MailerSendGiftToRecipient: 4,
+        GiftInAWayToRecipient: 5,
+        GiftHasBeenDeliveredToRecipient: 6,
+        RecipientTookTheGift: 7
+    };
+}
+const RoomState = roomState();
+
+function getRoomStateFromNum(num) {
+    const stateStrings = Object.keys(RoomState).reduce((acc, key) => {
+        acc[RoomState[key]] = key;
+        return acc;
+    }, {});
+    return stateStrings[num] || 'Unknown State';
+}
+
 
 async function getId() {
     return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/users/my_id`);
@@ -113,4 +135,8 @@ async function removeCurrentUserFromPool(pool_id) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_me`, params, true);
 }
 
-export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool };
+async function getRooms() {
+    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/rooms/my_rooms`);
+}
+
+export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRooms };

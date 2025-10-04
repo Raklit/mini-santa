@@ -1,7 +1,7 @@
 use chrono::Utc;
 use ::rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::new_id_safe, services::{get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::new_id_safe, services::{get_account_by_id, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -178,6 +178,71 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     delete_pool_by_id(pool_id, state).await;
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserRoomResponse {
+    pub id : String,
+    pub pool_id : String,
+    pub recipient_id : String,
+    pub room_state : RoomState,
+    pub recipient_nickname : String,
+    pub pool_name : String,
+    pub recipient_wishlist : String
+}
+
+pub async fn user_get_rooms_by_user(account_id : &str, state : &AppState) -> ApiResponse {
+    let account_exists = is_account_already_exists_by_id(account_id, state).await;
+    if account_exists.is_none_or(|b| {!b}) {
+        let err_msg = format!("Account with id \"{account_id}\" not found");
+        return ApiResponse::error_from_str(err_msg.as_str())
+    }
+    
+    let rooms = get_rooms_by_user(account_id, state).await.unwrap_or(vec![]);
+    let mut result = Vec::<UserRoomResponse>::new();
+    for room in rooms {
+        let recipient_id = room.recipient_id();
+        let pool_id = room.pool_id();
+
+        let pool_opt = get_pool_by_id(pool_id, state).await;
+        if pool_opt.is_none() {
+            let err_msg = format!("Pool with id \"{pool_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let pool = pool_opt.unwrap();
+        let pool_name = pool.name();
+
+        let public_recipient_info_opt = get_public_user_info_by_account_id(recipient_id, state).await;
+        if public_recipient_info_opt.is_none() {
+            let err_msg = format!("Public info for account with id \"{recipient_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let public_recipient_info = public_recipient_info_opt.unwrap();
+        let recipient_nickname = public_recipient_info.nickname();
+        
+
+        let recipient_member_opt = get_member_by_pool_and_account_ids(pool_id, recipient_id, state).await;
+        if recipient_member_opt.is_none() {
+            let err_msg = format!("Member with account id \"{recipient_id}\" and pool id \"{pool_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let recipient_member = recipient_member_opt.unwrap();
+        let recipient_wishlist = recipient_member.wishlist();
+
+        let temp = UserRoomResponse {
+            id: String::from(room.id()),
+            pool_id: String::from(pool_id),
+            recipient_id: String::from(recipient_id),
+            room_state: room.room_state(),
+            recipient_nickname: String::from(recipient_nickname),
+            pool_name: String::from(pool_name),
+            recipient_wishlist: String::from(recipient_wishlist)
+        };
+        result.push(temp);
+        
+    }
+
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(result).unwrap());
+}
+
 pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_content : &str, state : &AppState) -> ApiResponse {
     let trimmed_text = text_content.trim();
     if trimmed_text.is_empty() { 
@@ -286,7 +351,7 @@ pub async fn user_create_room_for_members(member_mailer_id : &str, member_recipi
 
     let new_id = new_id_safe(is_room_already_exists_by_id, state).await;
     let room_id = new_id.as_str();
-    create_room(room_id, pool_id, member_mailer.account_id(), member_recipient.account_id(), RoomState::ChosingAGift, state).await;
+    create_room(room_id, pool_id, member_mailer.account_id(), member_recipient.account_id(), RoomState::ChoosingAGift, state).await;
     set_member_room_id(member_mailer_id, room_id, state).await;
     set_member_room_id(member_recipient_id, room_id, state).await;
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());

@@ -3,7 +3,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 #[derive(Serialize_repr, Deserialize_repr, Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum RoomState {
-    ChosingAGift = 0,
+    ChoosingAGift = 0,
     BuyingAGift = 1,
     MailerAwaitingGiftDelivery = 2,
     GiftDeliveredToMailer = 3,
@@ -18,7 +18,7 @@ impl TryFrom<usize> for RoomState {
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            value if value == RoomState::ChosingAGift as usize => Ok(RoomState::ChosingAGift),
+            value if value == RoomState::ChoosingAGift as usize => Ok(RoomState::ChoosingAGift),
             value if value == RoomState::BuyingAGift as usize => Ok(RoomState::BuyingAGift),
             value if value == RoomState::MailerAwaitingGiftDelivery as usize => Ok(RoomState::MailerAwaitingGiftDelivery),
             value if value == RoomState::GiftDeliveredToMailer as usize => Ok(RoomState::GiftDeliveredToMailer),

@@ -1,8 +1,8 @@
-use axum::{routing::{delete, get, post, put}, Router};
+use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{delete, get, post, put}, Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Pool, Room}, traits::{IPool, IPoolRelated, IRoom}}, services::{row_to_member, row_to_pool, row_to_room, user_create_room_for_members}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Pool, Room}, traits::{IPool, IPoolRelated, IRoom}}, services::{get_rooms_by_account_id, row_to_member, row_to_pool, row_to_room, user_create_room_for_members, user_get_rooms_by_user}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateRoomRequestData {
@@ -69,6 +69,16 @@ impl RoomCRUDController {
         let pool = pool_opt.unwrap();
         
         return Some(pool);
+    }
+
+    async fn user_get_rooms_handler(State(state) : State<AppState>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let resp = user_get_rooms_by_user(executor_id, &state).await;
+        if resp.is_ok() {
+            return (StatusCode::OK, Json(resp)).into_response();
+        } else {
+            return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+        }
     }
 }
 
@@ -194,5 +204,8 @@ impl ICRUDController<CreateRoomRequestData, Room> for RoomCRUDController {
 }
 
 pub fn room_router(state : &AppState) -> Router<AppState> {
-    return RoomCRUDController::objects_router(state);
+    let router = Router::<AppState>::new()
+    .route("/my_rooms", get(RoomCRUDController::user_get_rooms_handler));
+    return RoomCRUDController::objects_router(state)
+    .merge(router);
 }
