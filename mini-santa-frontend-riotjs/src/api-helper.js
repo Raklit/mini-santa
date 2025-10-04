@@ -89,6 +89,18 @@ async function addToPool(pool_id, wishlist) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/members`, params, true);
 }
 
+async function removeUserFromPool(pool_id, account_id) {
+    const headers = new Map();
+    headers.set('Content-Type', 'application/json');
+
+    const params = {
+        method: 'DELETE',
+        headers: headers,
+        body: ""
+    };
+    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_member/${account_id}`, params, true);
+}
+
 async function removeCurrentUserFromPool(pool_id) {
     const headers = new Map();
     headers.set('Content-Type', 'application/json');
@@ -101,4 +113,4 @@ async function removeCurrentUserFromPool(pool_id) {
     return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_me`, params, true);
 }
 
-export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeCurrentUserFromPool };
+export default { apiBaseUrl, poolState, getPoolStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool };

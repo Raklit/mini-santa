@@ -17,10 +17,10 @@
                             <button onclick={onPushStateClick}>Push state</button>
                         </div>
                         <div class="column">
-                            <a href="/pools/id/{props.object_id}/add" class="button">Add me to pool</a>
+                            <a if={isPoolOpen()} href="/pools/id/{props.object_id}/add" class="button">Add me to pool</a>
                         </div>
                         <div class="column">
-                            <button onclick="{removeCurrentUserFromPool}">Remove me from pool</button>
+                            <button if={isPoolOpen()} onclick="{removeCurrentUserFromPool}">Remove me from pool</button>
                         </div>
                     </div>
                 </div>
@@ -29,7 +29,16 @@
                 <div class="container">
                     <div each={item in state.members} class="row">
                         <div class="column">
-                            <p>{item.nickname}</p>
+                            <div class="container">
+                                <div class="row">
+                                    <div class="column">
+                                        <p>{item.nickname}</p>
+                                    </div>
+                                    <div class="column">
+                                        <button if={isPoolOpen()} onclick="{() => removeUserFromPool(item.account_id)}">Remove "{item.nickname}" from pool</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -44,6 +53,10 @@ let state = {
     pool: null,
     members: []
 };
+
+function isPoolOpen() {
+    return (this.state?.pool?.pool_state ?? -1) == 1 ;
+}
 
 async function getPool(id) {
     let resp_json = await ApiHelper.getPool(id);
@@ -66,6 +79,10 @@ async function onPushStateClick() {
     await ApiHelper.pushPoolState(this.props.object_id);
 }
 
+async function removeUserFromPool(account_id) {
+    await ApiHelper.removeUserFromPool(this.props.object_id, account_id);
+}
+
 async function removeCurrentUserFromPool() {
     await ApiHelper.removeCurrentUserFromPool(this.props.object_id);
 }
@@ -75,7 +92,7 @@ export default {state,
         await this.getPool(props.object_id);
         await this.getPoolMemberNicknames(props.object_id);
     },
-    getPool, getPoolMemberNicknames, onPushStateClick, removeCurrentUserFromPool
+    isPoolOpen, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool
 };
 </script>
 </pool-details-page>

@@ -1,9 +1,8 @@
 use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, routing::{delete, get, post, put}, Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
-use tracing_subscriber::fmt::format;
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{delete_member_by_id, get_member_by_pool_and_account_ids, get_pool_by_id, row_to_pool, user_create_pool, user_delete_member_from_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool, user_delete_member_from_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -61,12 +60,29 @@ impl PoolCRUDController {
         return Self::access_denied_response().into_response();
     }
 
-    pub async fn user_delete_member_from_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+    pub async fn user_delete_me_from_pool_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
         let esc_id_string = escape_string(id.as_str());
         let pool_id= esc_id_string.as_str();
         let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
         let resp = user_delete_member_from_pool(pool_id, executor_id, &state).await;
         return (StatusCode::OK, Json(resp)).into_response();
+    }
+
+    pub async fn user_delete_member_from_pool_handler(State(state) : State<AppState>, Path((id, account_id)) : Path<(String, String)>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let esc_id_string = escape_string(id.as_str());
+        let pool_id= esc_id_string.as_str();
+        let esc_acc_id_string = escape_string(account_id.as_str());
+        let acc_id = esc_acc_id_string.as_str();
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let (basic_check, role) = PoolCRUDController::basic_check_owner(&state, executor_id, pool_id).await;
+        if basic_check.is_some_and(|b| {!b}) {
+            return Self::access_denied_response().into_response();
+        }
+        if role == WhoIsExecutor::Admin || role == WhoIsExecutor::Moderator || role == WhoIsExecutor::NoMatter || role == WhoIsExecutor::ResourceOwner {
+            let resp = user_delete_member_from_pool(pool_id, acc_id, &state).await;
+            return (StatusCode::OK, Json(resp)).into_response();
+        }
+        return Self::access_denied_response().into_response();
     }
 }
 
@@ -136,7 +152,8 @@ pub fn pool_router(state : &AppState) -> Router<AppState> {
     let router = Router::<AppState>::new()
     .route("/id/{id}/members", get(PoolCRUDController::user_get_member_nicknames_in_pool_handler))
     .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler))
-    .route("/id/{id}/remove_me", delete(PoolCRUDController::user_delete_member_from_pool_handler));
+    .route("/id/{id}/remove_me", delete(PoolCRUDController::user_delete_me_from_pool_handler))
+    .route("/id/{id}/remove_member/{account_id}", delete(PoolCRUDController::user_delete_member_from_pool_handler));
     return PoolCRUDController::objects_router(state)
     .merge(router);
 }
