@@ -4,6 +4,8 @@
         <div class="column">
             <div>
                 <h4>Room info</h4>
+                <b>Pool name</b>: "{state?.room?.pool_name ?? ""}"
+                <br>
                 <b>Recipient</b>: "{state?.room?.recipient_nickname ?? ""}"
                 <br>
                 <b>Room state</b>: {state?.room?.room_state_desc ?? ""}
@@ -11,7 +13,7 @@
                 <div class="container">
                     <div class="row">
                         <div class="column">
-                            <button onclick={onPushStateClick}>Push state</button>
+                            <button if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
                         </div>
                     </div>
                 </div>
@@ -50,7 +52,7 @@ export default {state,
     async onMounted(props, state) {
         await this.getRoom(props.object_id);
     },
-    getRoom, onPushStateClick
+    getRoom, onPushStateClick, isNotEnded
 };
 </script>
 </room-details-page>
