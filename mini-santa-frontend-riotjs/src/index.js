@@ -12,7 +12,9 @@ import CreatePoolPage from './pages/create-pool-page.riot';
 import PoolsPage from './pages/pools-page.riot';
 import AddToPoolPage from './pages/add-to-pool-page.riot';
 
+import RoomDetailsPage from './pages/room-details-page.riot';
 import RoomsPage from './pages/rooms-page.riot';
+
 
 import ActionStatusInfoComponent from './action-status-info-component.riot';
 import BaseLayout from './base-layout.riot';
@@ -42,6 +44,7 @@ riot.register("pool-details-page", PoolDetailsPage);
 riot.register("add-to-pool-page", AddToPoolPage);
 riot.register("pools-page", PoolsPage);
 
+riot.register("room-details-page", RoomDetailsPage);
 riot.register("rooms-page", RoomsPage);
 
 riot.register("action-status-info-component", ActionStatusInfoComponent);

@@ -243,6 +243,49 @@ pub async fn user_get_rooms_by_user(account_id : &str, state : &AppState) -> Api
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(result).unwrap());
 }
 
+pub async fn user_get_room_info_by_id(room_id : &str, state : &AppState) -> ApiResponse {
+        let room = get_room_by_id(room_id, state).await.unwrap();
+        
+        let recipient_id = room.recipient_id();
+        let pool_id = room.pool_id();
+
+        let pool_opt = get_pool_by_id(pool_id, state).await;
+        if pool_opt.is_none() {
+            let err_msg = format!("Pool with id \"{pool_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let pool = pool_opt.unwrap();
+        let pool_name = pool.name();
+
+        let public_recipient_info_opt = get_public_user_info_by_account_id(recipient_id, state).await;
+        if public_recipient_info_opt.is_none() {
+            let err_msg = format!("Public info for account with id \"{recipient_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let public_recipient_info = public_recipient_info_opt.unwrap();
+        let recipient_nickname = public_recipient_info.nickname();
+        
+
+        let recipient_member_opt = get_member_by_pool_and_account_ids(pool_id, recipient_id, state).await;
+        if recipient_member_opt.is_none() {
+            let err_msg = format!("Member with account id \"{recipient_id}\" and pool id \"{pool_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+        let recipient_member = recipient_member_opt.unwrap();
+        let recipient_wishlist = recipient_member.wishlist();
+
+        let result = UserRoomResponse {
+            id: String::from(room.id()),
+            pool_id: String::from(pool_id),
+            recipient_id: String::from(recipient_id),
+            room_state: room.room_state(),
+            recipient_nickname: String::from(recipient_nickname),
+            pool_name: String::from(pool_name),
+            recipient_wishlist: String::from(recipient_wishlist)
+        };
+        return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(result).unwrap());
+}
+
 pub async fn user_send_message_to_room(room_id : &str, account_id : &str, text_content : &str, state : &AppState) -> ApiResponse {
     let trimmed_text = text_content.trim();
     if trimmed_text.is_empty() { 

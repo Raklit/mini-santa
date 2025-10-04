@@ -92,7 +92,7 @@ async function createPool(name, description, minPrice, maxPrice) {
         headers: headers,
         body: JSON.stringify(body)
     };
-    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools`, params, true);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools`, params, true);
 }
 
 async function addToPool(pool_id, wishlist) {
@@ -108,7 +108,7 @@ async function addToPool(pool_id, wishlist) {
         headers: headers,
         body: JSON.stringify(body)
     };
-    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/members`, params, true);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/members`, params, true);
 }
 
 async function removeUserFromPool(pool_id, account_id) {
@@ -120,7 +120,7 @@ async function removeUserFromPool(pool_id, account_id) {
         headers: headers,
         body: ""
     };
-    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_member/${account_id}`, params, true);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_member/${account_id}`, params, true);
 }
 
 async function removeCurrentUserFromPool(pool_id) {
@@ -132,11 +132,15 @@ async function removeCurrentUserFromPool(pool_id) {
         headers: headers,
         body: ""
     };
-    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_me`, params, true);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${pool_id}/remove_me`, params, true);
 }
 
 async function getRooms() {
-    return AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/rooms/my_rooms`);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/rooms/my_rooms`);
 }
 
-export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRooms };
+async function getRoom(id) {
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/rooms/id/${id}/info`);
+}
+
+export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, getId, getNickname, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms };

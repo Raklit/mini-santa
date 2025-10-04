@@ -1,0 +1,56 @@
+<room-details-page>
+<div class="container">
+    <div class="row">
+        <div class="column">
+            <div>
+                <h4>Room info</h4>
+                <b>Recipient</b>: "{state?.room?.recipient_nickname ?? ""}"
+                <br>
+                <b>Room state</b>: {state?.room?.room_state_desc ?? ""}
+                <br>
+                <div class="container">
+                    <div class="row">
+                        <div class="column">
+                            <button onclick={onPushStateClick}>Push state</button>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <h4>Messages</h4>
+            </div>
+        </div>
+    </div>
+</div>
+<script lang="js">
+import ApiHelper from '../api-helper.js';
+
+let state = {
+    room: null,
+    messages: []
+};
+
+function isNotEnded() {
+    return (this.state?.room?.room_state ?? 7) != 7;
+}
+
+async function getRoom(id) {
+    let resp_json = await ApiHelper.getRoom(id);
+    if (resp_json.status == 'OK') {
+        this.state.room = resp_json.body;
+        this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
+        this.update();
+    }
+}
+
+async function onPushStateClick() {
+   // not implemented yet
+}
+
+export default {state,
+    async onMounted(props, state) {
+        await this.getRoom(props.object_id);
+    },
+    getRoom, onPushStateClick
+};
+</script>
+</room-details-page>
