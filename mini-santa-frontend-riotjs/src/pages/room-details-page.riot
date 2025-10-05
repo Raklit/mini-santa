@@ -2,10 +2,10 @@
 <div class="container padding-0">
     <div class="row">
         <div class="column">
-            "{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")
-        </div>
-        <div class="column text-h-right">
-            <button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
+            <div class="room-header-block">
+                <div class="room-header-info-block">"{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")</div>
+                <div class="room-header-buttons-block"><button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button></div>
+            </div>
         </div>
     </div>
     <div class="row">
@@ -39,7 +39,7 @@
     </div>
     <div class="row">
         <div class="column">
-            <div class="message-sender-block">
+            <div if={isNotEnded()} class="message-sender-block">
                 <div class="message-sender-textarea-block">
                     <textarea id="message-sender-textarea"></textarea>
                 </div>
