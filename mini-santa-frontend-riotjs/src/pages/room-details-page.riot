@@ -110,7 +110,7 @@ export default {state,
         }
     },
 
-    async onBeforeUnmout(props, state) {
+    async onBeforeUnmount(props, state) {
         if (this.state.timer != null) {
             clearInterval(this.state.timer);
         }
