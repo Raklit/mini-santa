@@ -31,6 +31,8 @@ import './styles/signup.css';
 import './styles/pools.css';
 import './styles/add-to-pool.css';
 
+import './styles/rooms.css';
+
 riot.register('router', Router);
 riot.register('route', Route);
 

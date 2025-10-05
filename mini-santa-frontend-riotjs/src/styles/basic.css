@@ -4,6 +4,12 @@
     --fore-color: #000000;
     --alt-back-color: #9b4dca;
     --alt-fore-color: #ffffff;
+    --global-back-color: #f0e6e6;
+    --app-back-color: #c9da8c;
+}
+
+html {
+    background-color: var(--global-back-color);
 }
 
 #root {
@@ -52,4 +58,12 @@
     display: block;
     margin-left: auto;
     margin-right: auto;
+}
+
+.text-h-right {
+    text-align: right;
+}
+
+.padding-0 {
+    padding: 0;
 }

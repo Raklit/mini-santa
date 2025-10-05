@@ -1,0 +1,75 @@
+.message-list-block {
+    height: 50rem;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding: 1rem;
+    background-color: var(--back-color);
+    border-radius: 10px;
+    border: 1px solid var(--fore-color);
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.message-block {
+    background-color: var(--alt-back-color);
+    border-radius: 10px;
+    border: 1px solid var(--fore-color);
+    color: var(--alt-fore-color);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.message-avatar-block {
+    display: inline-block;
+    width: 20%;
+}
+
+.message-author-block {
+    display: inline-block;
+    width: 80%;
+    vertical-align: bottom;
+    padding-left: 1rem;
+}
+
+.message-text-block {
+    background-color: var(--back-color);
+    color: var(--fore-color);
+    min-height: 5rem;
+    padding: 1rem;
+}
+
+.message-sender-block {
+    display: flex;
+}
+
+
+.message-sender-textarea-block {
+    width: 85%;
+    vertical-align: top;
+    margin-right: 1rem;
+}
+
+.simple-pre {
+    border: inherit;
+    color: inherit;
+    background-color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+    margin: 0;
+}
+
+.message-sender-button-block {
+    vertical-align: top;
+    flex: 1;
+}
+
+#message-sender-button, #message-sender-textarea {
+    width: 100%;
+    height: 5rem;
+}
+
+#message-sender-textarea {
+    background-color: var(--back-color);
+    color: var(--fore-color);
+    border: 1px solid var(--fore-color);
+}

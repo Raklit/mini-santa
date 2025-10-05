@@ -16,3 +16,9 @@
 #vertical-menu-block li:last-child {
     margin-right: 0;
 }
+
+#main-app-block {
+    background-color: var(--app-back-color);
+    border: 1px solid var(--fore-color);
+    border-radius: 10px;
+}

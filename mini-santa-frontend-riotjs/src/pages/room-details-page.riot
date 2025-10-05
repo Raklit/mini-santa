@@ -1,24 +1,51 @@
 <room-details-page>
-<div class="container">
+<div class="container padding-0">
     <div class="row">
         <div class="column">
-            <div>
-                <h4>Room info</h4>
-                <b>Pool name</b>: "{state?.room?.pool_name ?? ""}"
-                <br>
-                <b>Recipient</b>: "{state?.room?.recipient_nickname ?? ""}"
-                <br>
-                <b>Room state</b>: {state?.room?.room_state_desc ?? ""}
-                <br>
-                <div class="container">
-                    <div class="row">
-                        <div class="column">
-                            <button if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
+            "{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")
+        </div>
+        <div class="column text-h-right">
+            <button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <div class="container message-list-block padding-0">
+                <div class="row">
+                    <div class="column">
+                        <div class="container message-block">
+                            <div class="row">
+                                <div class="column">
+                                    <div class="message-avatar-block">
+                                        Avatar
+                                    </div>
+                                    <div class="message-author-block">
+                                        Ivan Ivanovich Ivanov
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="column">
+                                    <div class="message-text-block">
+                                        <pre class="simple-pre">Hello world!</pre>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <br>
-                <h4>Messages</h4>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <div class="message-sender-block">
+                <div class="message-sender-textarea-block">
+                    <textarea id="message-sender-textarea"></textarea>
+                </div>
+                <div class="message-sender-button-block">
+                    <button id="message-sender-button" class="button">Send</button>
+                </div>
             </div>
         </div>
     </div>
