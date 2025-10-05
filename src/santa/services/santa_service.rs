@@ -1,7 +1,7 @@
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use ::rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::new_id_safe, services::{get_account_by_id, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::new_id_safe, services::{escape_string, get_account_by_id, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IMessage, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_last_messages_by_room_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -428,4 +428,84 @@ pub async fn user_make_rooms(pool_id : &str, state : &AppState) -> () {
         let member_recipient_id = pair[1].as_str();
         user_create_room_for_members(member_mailer_id, member_recipient_id, state).await;
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserMessageResponse {
+    id : String,
+    text_content : String,
+    is_recipient : bool,
+    creation_date : DateTime<chrono::Utc>
+}
+
+pub async fn user_get_last_messages_by_room_id(room_id : &str, limit : usize, state : &AppState) -> ApiResponse {
+    let esc_room_id_string = escape_string(room_id);
+    let esc_room_id = esc_room_id_string.as_str();
+
+    let room_opt = get_room_by_id(esc_room_id, state).await;
+    if room_opt.is_none() {
+        let err_msg = format!("Room with id \"{esc_room_id}\" not found");
+        return ApiResponse::error_from_str(err_msg.as_str());
+    }
+    let room = room_opt.unwrap();
+
+    let messages = get_last_messages_by_room_id(esc_room_id, limit, state).await.unwrap_or(vec![]);
+    let mut result = Vec::<UserMessageResponse>::new();
+    for message in messages {
+        let is_recipient = message.account_id() == room.recipient_id();
+        let temp = UserMessageResponse {
+            id : String::from(message.id()),
+            text_content : String::from(message.text_content()),
+            is_recipient : is_recipient,
+            creation_date : message.creation_date() 
+        };
+        result.push(temp);
+    }
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(result).unwrap());
+}
+
+pub async fn user_send_message_to_room2(room_id : &str, account_id : &str, text_content : &str, state : &AppState) -> ApiResponse {
+    let esc_room_id_string = escape_string(room_id);
+    let esc_room_id = esc_room_id_string.as_str();
+
+    let room_opt = get_room_by_id(esc_room_id, state).await;
+    if room_opt.is_none() {
+        let err_msg = format!("Room with id \"{esc_room_id}\" not found");
+        return  ApiResponse::error_from_str(err_msg.as_str());
+    }
+    let room = room_opt.unwrap();
+
+
+    let esc_account_id_string = escape_string(account_id);
+    let esc_account_id = esc_account_id_string.as_str();
+    let account_exists = is_account_already_exists_by_id(esc_account_id, state).await;
+    if account_exists.is_none_or(|b| {!b}) {
+        let err_msg = format!("Account with id \"{esc_account_id}\" not found");
+        return  ApiResponse::error_from_str(err_msg.as_str());
+    }
+
+    if room.mailer_id() != esc_account_id && room.recipient_id() != esc_account_id {
+        let err_msg = format!("Account with id \"{esc_account_id}\" is not a member of room with id \"esc_room_id\"");
+        return  ApiResponse::error_from_str(err_msg.as_str());
+    }
+
+    let esc_text_content_string = escape_string(text_content);
+    let esc_text_content = esc_text_content_string.as_str();
+
+    let message_content = esc_text_content.trim();
+    if message_content.is_empty() {
+        let err_msg = format!("Message body is empty");
+        return  ApiResponse::error_from_str(err_msg.as_str());
+    }
+
+    let message_id_string = new_id_safe(is_message_already_exists_by_id, state).await;
+    let message_id = message_id_string.as_str();
+
+    let creation_date = Utc::now();
+
+    let pool_id = room.pool_id();
+
+    create_message(message_id, message_content, esc_account_id, esc_room_id, pool_id, creation_date, state).await;
+
+    return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(message_id).unwrap())
 }

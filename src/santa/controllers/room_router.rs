@@ -2,12 +2,17 @@ use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, Status
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Pool, Room}, traits::{IPool, IPoolRelated, IRoom}}, services::{get_room_by_id, get_rooms_by_account_id, row_to_member, row_to_pool, row_to_room, user_create_room_for_members, user_get_room_info_by_id, user_get_rooms_by_user}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::{IAccountRelated, ILocalObject}, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::{Pool, Room}, traits::{IPool, IPoolRelated, IRoom}}, services::{get_room_by_id, get_rooms_by_account_id, row_to_member, row_to_pool, row_to_room, user_create_room_for_members, user_get_last_messages_by_room_id, user_get_room_info_by_id, user_get_rooms_by_user, user_send_message_to_room2}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateRoomRequestData {
     pub member_mailer_id : String,
     pub member_recipient_id : String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UserSendMessageRequest {
+    pub text_content : String
 }
 
 pub struct RoomCRUDController {}
@@ -81,20 +86,30 @@ impl RoomCRUDController {
         }
     }
 
-    async fn user_get_room_info_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
-        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
-        let esc_room_id_string = escape_string(id.as_str());
-        let room_id = esc_room_id_string.as_str();
+    async fn user_has_access_to_room(room_id : &str, executor_id : &str, state : &AppState) -> Option<impl IntoResponse> {
         let room_opt = get_room_by_id(room_id, &state).await;
         if room_opt.is_none() {
             let err_msg = format!("Room with id \"{room_id}\" not found");
             let resp = ApiResponse::error_from_str(err_msg.as_str());
-            return (StatusCode::NOT_FOUND, Json(resp)).into_response();
+            return Some((StatusCode::NOT_FOUND, Json(resp)).into_response());
         }
         let room = room_opt.unwrap();
 
         if room.mailer_id() != executor_id && room.recipient_id() != executor_id {
-            return Self::access_denied_response().into_response();
+            return Some(Self::access_denied_response().into_response());
+        }
+
+        return None;
+    }
+
+    async fn user_get_room_info_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let esc_room_id_string = escape_string(id.as_str());
+        let room_id = esc_room_id_string.as_str();
+        
+        let has_access_check = Self::user_has_access_to_room(room_id, executor_id, &state).await;
+        if has_access_check.is_some() {
+            return has_access_check.unwrap().into_response();
         } 
 
         let resp = user_get_room_info_by_id(room_id, &state).await;
@@ -103,6 +118,47 @@ impl RoomCRUDController {
         } else {
             return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
         }
+    }
+
+    async fn user_get_last_messages_by_room_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        const LIMIT : usize = 64;
+
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let esc_room_id_string = escape_string(id.as_str());
+        let room_id = esc_room_id_string.as_str();
+
+        let has_access_check = Self::user_has_access_to_room(room_id, executor_id, &state).await;
+        if has_access_check.is_some() {
+            return has_access_check.unwrap().into_response();
+        } 
+
+        let resp = user_get_last_messages_by_room_id(room_id, LIMIT, &state).await;
+        if resp.is_ok() {
+            return (StatusCode::OK, Json(resp)).into_response();
+        } else {
+            return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+        }
+    }
+
+    async fn user_send_message_to_room_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, Json(json) : Json<UserSendMessageRequest>) -> impl IntoResponse {
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let esc_room_id_string = escape_string(id.as_str());
+        let room_id = esc_room_id_string.as_str();
+
+        let has_access_check = Self::user_has_access_to_room(room_id, executor_id, &state).await;
+        if has_access_check.is_some() {
+            return has_access_check.unwrap().into_response();
+        }
+
+        let text_content = json.text_content.as_str();
+
+        let resp = user_send_message_to_room2(room_id, executor_id, text_content, &state).await;
+        if resp.is_ok() {
+            return (StatusCode::OK, Json(resp)).into_response();
+        } else {
+            return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+        }
+
     }
 }
 
@@ -171,7 +227,7 @@ impl ICRUDController<CreateRoomRequestData, Room> for RoomCRUDController {
             .route("/id/{id}", get(Self::get_object_by_id_handler))
             .route("/", post(Self::create_object_handler))
             .route("/id/{id}", put(Self::update_object_by_id_handler))
-            .route("/id/{id}", delete(Self::delete_object_by_id_handler));
+            .route("/id/{id}", delete(Self::delete_object_by_id_handler))
     }
     
     async fn check_perm_create(_state : &AppState, _executor_id : &str) -> bool {
@@ -230,7 +286,9 @@ impl ICRUDController<CreateRoomRequestData, Room> for RoomCRUDController {
 pub fn room_router(state : &AppState) -> Router<AppState> {
     let router = Router::<AppState>::new()
     .route("/my_rooms", get(RoomCRUDController::user_get_rooms_handler))
-    .route("/id/{id}/info", get(RoomCRUDController::user_get_room_info_handler));
+    .route("/id/{id}/info", get(RoomCRUDController::user_get_room_info_handler))
+    .route("/id/{id}/last_messages", get(RoomCRUDController::user_get_last_messages_by_room_id_handler))
+    .route("/id/{id}/send_message", post(RoomCRUDController::user_send_message_to_room_handler));
     return RoomCRUDController::objects_router(state)
     .merge(router);
 }

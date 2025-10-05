@@ -10,8 +10,8 @@
     </div>
     <div class="row">
         <div class="column">
-            <div class="container message-list-block padding-0">
-                <div class="row">
+            <div id="chat-history" class="container message-list-block padding-0">
+                <div each={item in state.messages} class="row">
                     <div class="column">
                         <div class="container message-block">
                             <div class="row">
@@ -20,14 +20,14 @@
                                         Avatar
                                     </div>
                                     <div class="message-author-block">
-                                        Ivan Ivanovich Ivanov
+                                        {item.is_recipient ? state?.room?.recipient_nickname ?? "" : "Santa"}
                                     </div>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="column">
                                     <div class="message-text-block">
-                                        <pre class="simple-pre">Hello world!</pre>
+                                        <pre class="simple-pre">{item.text_content}</pre>
                                     </div>
                                 </div>
                             </div>
@@ -44,7 +44,7 @@
                     <textarea id="message-sender-textarea"></textarea>
                 </div>
                 <div class="message-sender-button-block">
-                    <button id="message-sender-button" class="button">Send</button>
+                    <button onclick={onSendButtonClick} id="message-sender-button" class="button">Send</button>
                 </div>
             </div>
         </div>
@@ -55,7 +55,8 @@ import ApiHelper from '../api-helper.js';
 
 let state = {
     room: null,
-    messages: []
+    messages: [],
+    timer: null
 };
 
 function isNotEnded() {
@@ -67,7 +68,13 @@ async function getRoom(id) {
     if (resp_json.status == 'OK') {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
-        this.update();
+    }
+}
+
+async function getLastMessagesInRoom(id) {
+    let resp_json = await ApiHelper.getLastMessagesInRoom(id);
+    if (resp_json.status == 'OK') {
+        this.state.messages = resp_json.body;
     }
 }
 
@@ -75,11 +82,38 @@ async function onPushStateClick() {
    // not implemented yet
 }
 
+async function onSendButtonClick() {
+    let text_content = document.getElementById("message-sender-textarea").value;
+    let resp_json = await ApiHelper.sendMessage(this.props.object_id, text_content);
+    if (resp_json.status == 'OK') {
+        await this.fetchRoomData();
+        let chat = document.getElementById("chat-history");
+        chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+    }
+}
+
+async function fetchRoomData() {
+    await this.getRoom(this.props.object_id);
+    await this.getLastMessagesInRoom(this.props.object_id);
+    this.update();
+}
+
 export default {state,
     async onMounted(props, state) {
-        await this.getRoom(props.object_id);
+        const CHAT_UPDATE_INTERVAL = 5000;
+        await this.fetchRoomData();
+        if (this.isNotEnded()) {
+            this.state.timer = setInterval(async () => {await this.fetchRoomData();}, CHAT_UPDATE_INTERVAL);
+        }
     },
-    getRoom, onPushStateClick, isNotEnded
+
+    async onBeforeUnmout(props, state) {
+        if (this.state.timer != null) {
+            clearInterval(this.state.timer);
+        }
+    },
+
+    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded
 };
 </script>
 </room-details-page>

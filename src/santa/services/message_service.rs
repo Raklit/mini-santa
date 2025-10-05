@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use sqlx::{sqlite::SqliteRow, Row};
+use sqlx::{query, sqlite::SqliteRow, Executor, Row};
 
-use crate::{core::services::{IDbService, SQLiteDbService}, santa::data_model::{implementations::Message, traits::IMessage}, AppState};
+use crate::{core::services::{escape_string, IDbService, SQLiteDbService}, santa::data_model::{implementations::Message, traits::IMessage}, AppState};
 
 pub fn row_to_message(row : &SqliteRow) -> Message {
     let id : &str = row.get("id");
@@ -59,4 +59,24 @@ pub async fn set_message_text_content_by_id(id : &str, text_content : &str, stat
 pub async fn delete_message_by_id(id : &str, state : &AppState) -> () {
     let db_service = SQLiteDbService::new(state);
     return db_service.delete_one_by_prop("messages", "id", id).await;
+}
+
+pub async fn get_last_messages_by_room_id(room_id : &str, limit : usize, state : &AppState) -> Option<Vec<impl IMessage>> {
+    let esc_room_id_string = escape_string(room_id);
+    let esc_room_id = esc_room_id_string.as_str();
+
+    let query = format!("SELECT * FROM messages WHERE room_id = \"{esc_room_id}\" ORDER BY creation_date DESC LIMIT {limit}" );
+    let conn = state.db.lock().await;
+    let query_result = match conn.fetch_all(query.as_str()).await {
+        Ok(o) => Some(o),
+        Err(_) => None
+    };
+    if query_result.is_none() { return None; }
+
+    let rows = query_result.unwrap();
+    let mut objs : Vec<Message> = rows.iter().map(row_to_message).collect();
+    objs.reverse();
+    
+    return Some(objs);
+
 }
