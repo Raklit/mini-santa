@@ -10,7 +10,7 @@
     </div>
     <div class="row">
         <div class="column">
-            <div id="chat-history" class="container message-list-block padding-0">
+            <div id="message-list-block" class="container padding-0">
                 <div each={item in state.messages} class="row">
                     <div class="column">
                         <div class="container message-block">
@@ -84,10 +84,13 @@ async function onPushStateClick() {
 
 async function onSendButtonClick() {
     let text_content = document.getElementById("message-sender-textarea").value;
+    text_content = text_content?.trim();
+    if (!text_content) { return; }
+
     let resp_json = await ApiHelper.sendMessage(this.props.object_id, text_content);
     if (resp_json.status == 'OK') {
         await this.fetchRoomData();
-        let chat = document.getElementById("chat-history");
+        let chat = document.getElementById("message-list-block");
         chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
     }
 }
