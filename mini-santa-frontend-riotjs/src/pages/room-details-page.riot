@@ -101,7 +101,7 @@ async function fetchRoomData() {
     this.update();
 }
 
-export default {state,
+export default {state, props,
     async onMounted(props, state) {
         const CHAT_UPDATE_INTERVAL = 5000;
         await this.fetchRoomData();
