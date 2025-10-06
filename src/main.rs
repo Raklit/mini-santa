@@ -5,8 +5,8 @@ use crate::core::background_tasks::{delete_old_account_sessions, delete_old_auth
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{auth_router, check_auth, hello, invite_router, ping, sign_up, user_router};
 use crate::core::data_model::traits::ILocalObject;
-use crate::core::functions::generate_id;
-use crate::core::services::{create_roles_user_info, row_to_account, row_to_role, user_sign_up, IDbService, SQLiteDbService};
+use crate::core::functions::{generate_id, generate_random_token};
+use crate::core::services::{create_roles_user_info, initAdminIfNotExists, row_to_account, row_to_role, user_sign_up, IDbService, SQLiteDbService};
 use crate::santa::background_tasks::{delete_old_messages, delete_old_pools};
 use crate::santa::controllers::santa_router;
 use crate::santa::functions::santa_init_database;
@@ -53,15 +53,10 @@ async fn init_database(state : &AppState) {
 }
 
 async fn run_background_tasks(state : &AppState) -> () {
-    tracing::info!("YEEEP1");
     delete_old_account_sessions(state).await;
-    tracing::info!("YEEEEEEEEEEEEP");
     delete_old_auth_codes(state).await;
-    tracing::info!("YEEEEEEEEEEEEP3");
     delete_old_messages(state).await;
-    tracing::info!("YEEEEEEEEEEEEP4");
     delete_old_pools(state).await;
-    tracing::info!("YEEEEEEEEEEEEP3");
 }
 
 // routers groups
@@ -194,60 +189,38 @@ async fn main() {
         config: Arc::new(Mutex::new(app_config))
     };
 
+    // init database
+
     init_database(&state).await;
     install_default_drivers();
 
-    //TODO: FOR TEST ONLY. REPLACE WITH ENV VARS WHEN AUTH 2.0 WILL END
-    let db_service = SQLiteDbService::new(&state);
+
+    // create admin account
     
-    let temp_code = "START UP";
-
-    let is_invite_code_exists = db_service.exists_by_prop("invites", "invite_code", temp_code).await;
-    if is_invite_code_exists.is_some_and(|b| {!b}) {
-        let new_id_string = db_service.new_id("invites").await.unwrap();
-        let new_id = new_id_string.as_str();
-        let props = vec!["id", "invite_code", "one_use"];
-        let values = vec![vec![new_id, temp_code, "true"]];
-        let _ = db_service.insert("invites", props, values).await;
+    let resp = initAdminIfNotExists(&state).await;
+    let body_string = resp.body.to_string();
+    let body = body_string.as_str();
+    if resp.is_ok() {
+        tracing::info!(body)
+    } else {
+        tracing::error!(body);
     }
 
-    let is_admin_exists = is_account_already_exists_by_login("admin", &state).await;
-    if is_admin_exists.is_some_and(|b| {!b}) {
-        user_sign_up("admin", "qwerty123456", "qwerty123456", "BigBoss", "admin@test.ru", temp_code, &state).await;
-        let admin = db_service.get_one_by_prop("accounts", "login", "admin", row_to_account).await.unwrap();
-        let admin_role = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await.unwrap();
-        let roles_user_info_id = db_service.new_id("roles_user_infos").await.unwrap();
-        let _ = db_service.delete_one_by_prop("roles_user_infos", "account_id", admin.id()).await;
-        create_roles_user_info(roles_user_info_id.as_str(), admin.id(), admin_role.id(), "", &state).await;
-    }
+    // create client
+
+    let client_secret_string = &state.config.lock().await.auth.oauth2_client_secret;
+    let client_secret = client_secret_string.as_str();
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
     if !is_client_already_exists.is_some_and(|b| {b}) {
-        create_client(generate_id().await.as_str(), "api", "qwerty", "http://localhost:8000/oauth_code_redirect", true, &state).await;
+        create_client(generate_id().await.as_str(), "api", client_secret, "http://localhost:8000/oauth_code_redirect", true, &state).await;
     }
-
-    let message_id = db_service.new_id("messages").await.unwrap();
-    let now_time = Utc::now().to_rfc3339();
-    
-    let props = vec!["id", "text_content", "account_id", "pool_id", "room_id",  "creation_date"];
-    let values = vec![vec![message_id.as_str(), "Hello world", "0", "0", "0", now_time.as_str()]];
-    db_service.insert("messages", props, values).await;
-    db_service.update("messages", "id", &message_id.as_str(), vec!["text_content"], vec!["Goodbye world"]).await;
-
-    let exists_opt = db_service.exists_by_prop("messages", "id", message_id.as_str()).await;
-    if exists_opt.is_some_and(|x| { x }) {
-        let _ = db_service.get_one_by_prop("messages", "id", message_id.as_str(), row_to_message).await.unwrap();
-        db_service.delete_one_by_prop("messages", "id", message_id.as_str()).await;
-        let _ = db_service.exists_by_prop("messages", "id", message_id.as_str()).await;
-    }
-
-
-    // END TODO
     
     // start threads
 
-    let state_clone = state.clone();
+    run_background_tasks(&state).await;
+    
+    // start server
 
-    tokio::spawn(async move { run_background_tasks(&state_clone).await });
     run_server(&state).await;
 }

@@ -1,10 +1,16 @@
 [server]
-config_secret = "secret"
+config_secret = "secret" # change it
 log_path = "./logs/activity.log"
 
 [database]
 db_file = "./db/database.db"
 connection_number = 256
+
+[admin]
+login = "admin" # change it
+password = "qwerty123456" # change it
+nickname = "BigBoss" # change it
+email = "admin@test.ru" # change it
 
 [auth]
 access_token_lifetime = 900
@@ -12,6 +18,7 @@ refresh_token_lifetime = 86400
 auth_code_lifetime = 300
 check_session_status_freq = 43200
 check_auth_code_status_freq = 150
+oauth2_client_secret = "qwerty" #change it
 
 [santa]
 pool_max_lifetime = 15552000

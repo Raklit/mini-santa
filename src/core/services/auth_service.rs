@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use chrono::Utc;
 use regex::Regex;
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, IInvite, ILocalObject}, functions::{generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_recovery_user_info, create_roles_user_info, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_login, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, row_to_invite, row_to_role, IDbService, SQLiteDbService}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccount, IAccountRelated, IAccountSession, IAuthCode, IClient, IInvite, ILocalObject, IRolesUserInfo}, functions::{generate_random_token, validate_hash}, services::{create_account, create_public_user_info, create_random_invite_code_safe, create_recovery_user_info, create_roles_user_info, db_service, delete_auth_code_by_id, get_auth_code_by_code, is_account_already_exists_by_login, is_public_user_info_already_exists_by_nickname, is_recovery_user_info_already_exists_by_email, row_to_account, row_to_invite, row_to_role, row_to_roles_user_info, IDbService, SQLiteDbService}}, AppState};
 
 use super::{create_account_session, delete_account_sessions_by_account_id, delete_account_session_by_id, get_account_by_login, get_account_session_by_access_token, get_account_session_by_id, get_account_session_by_refresh_token, get_client_by_client_name, is_account_session_already_exists_by_token, update_account_session_last_usage_date_by_token, update_account_session_tokens_by_refresh_token};
 
@@ -421,4 +421,77 @@ pub async fn user_create_invite_code(invite_code : &str, one_use : bool, state :
 
     let _ = db_service.insert("invites", props, values).await;
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(id).unwrap());
+}
+
+pub async fn initAdminIfNotExists(state : &AppState) -> ApiResponse {
+
+    let admin_exists_opt = is_admin_already_exists(state).await;
+    if admin_exists_opt.is_none_or(|b| {b}) {
+        let err_msg = "Admin account already exists";
+        return ApiResponse::new(ApiResponseStatus::WARNING, serde_json::to_value(err_msg).unwrap());
+    }
+    
+    let one_use_code_string_opt = create_random_invite_code_safe(true, state).await;
+    if one_use_code_string_opt.is_none() {
+        let err_msg = "Cant create random invite code for admin sign up";
+        return ApiResponse::error_from_str(err_msg);
+    }
+    let one_use_code_string = one_use_code_string_opt.unwrap();
+    let one_use_code = one_use_code_string.as_str();
+    
+    let login_string = &state.config.lock().await.admin.login;
+    let login = &login_string.as_str();
+    let password_string = &state.config.lock().await.admin.password;
+    let password = password_string.as_str();
+    let nickname_string = &state.config.lock().await.admin.nickname;
+    let nickname = nickname_string.as_str();
+    let email_string = &state.config.lock().await.admin.email;
+    let email = email_string.as_str();
+
+    let results = user_sign_up(login, password, password, nickname, email, one_use_code, state).await;
+
+    let data_valid = results.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });
+    if data_valid {
+        add_admin_role_to_admin(state).await;
+        let msg = "Admin created";
+        return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap())
+    }
+
+    let error_msgs = sign_up_error_description_map();
+    let err_msg : Vec<String> = results.iter().map(|&r| error_msgs.get(&r).unwrap().clone()).collect();
+    return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap())
+
+}
+
+pub async fn is_admin_already_exists(state : &AppState) -> Option<bool> {
+    let db_service = SQLiteDbService::new(state);
+    let admin_role_opt = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await;
+    if admin_role_opt.is_none() { return None; }
+    let admin_role = admin_role_opt.unwrap();
+    let admin_role_id = admin_role.id();
+    let role_exists_opt = db_service.exists_by_prop("roles_user_infos", "role_id", admin_role_id).await;
+    if role_exists_opt.is_none() { return None; }
+
+    let role_opt = db_service.get_one_by_prop("roles_user_infos", "role_id", admin_role_id, row_to_roles_user_info).await;
+    if role_opt.is_none() { return Some(false); }
+    let role = role_opt.unwrap();
+    let account_id = role.account_id();
+    for table_name in vec!["accounts", "public_user_infos", "recovery_user_infos"] {
+        let exists_opt = db_service.exists_by_prop(table_name, "account_id", account_id).await;
+        if exists_opt.is_none() { return None; }
+        if exists_opt.is_some_and(| b | {!b}) { return Some(false); }
+    }
+    return Some(true);
+}
+
+pub async fn add_admin_role_to_admin(state : &AppState) {
+    let login_string = &state.config.lock().await.admin.login;
+    let login = login_string.as_str();
+    
+    let db_service = SQLiteDbService::new(state);
+    let admin = db_service.get_one_by_prop("accounts", "login", login, row_to_account).await.unwrap();
+    let admin_role = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await.unwrap();
+    let roles_user_info_id = db_service.new_id("roles_user_infos").await.unwrap();
+    let _ = db_service.delete_one_by_prop("roles_user_infos", "account_id", admin.id()).await;
+    create_roles_user_info(roles_user_info_id.as_str(), admin.id(), admin_role.id(), "", &state).await;
 }
