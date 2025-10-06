@@ -259,7 +259,7 @@ async fn is_password_valid(password : &str, state : &AppState) -> SignUpStatus {
 }
 
 fn is_nickname_chars_valid(nickname : &str) -> bool {
-    const NICKNAME_ALLOWED_CHARACTERS : &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const NICKNAME_ALLOWED_CHARACTERS : &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789АБВГДЕЁЖЗИИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзиийклмнопрстуфхцчшщъыьэюя-_ ";
     return nickname.chars().all( | c : char | -> bool { NICKNAME_ALLOWED_CHARACTERS.contains(c) } );
 }
 
