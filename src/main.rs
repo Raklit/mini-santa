@@ -218,7 +218,9 @@ async fn main() {
     
     // start threads
 
-    run_background_tasks(&state).await;
+    let cloned_state = state.clone();
+
+    tokio::spawn(async move { run_background_tasks(&cloned_state).await });
     
     // start server
 
