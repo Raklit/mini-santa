@@ -123,6 +123,12 @@ pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiRespo
     }
     let pool = pool_option.unwrap();
     let pool_state = pool.state();
+
+    if PoolState::Pooling == pool_state {
+        let err_msg = format!("Pool with id \"{pool_id}\" cannot be pushed because it is busy creating rooms. Please wait.");
+        return ApiResponse::error_from_str(err_msg.as_str());
+    }
+
     let next_pool_state_option = match pool_state {
         PoolState::Created => Some(PoolState::Open),
         PoolState::Open => Some(PoolState::Pooling),
