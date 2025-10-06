@@ -51,12 +51,20 @@ import ApiHelper from '../api-helper.js';
 
 let state = {
     pool: null,
-    members: []
+    members: new Array(),
+    timer: null
 };
 
+let props = null;
+
 function isPoolOpen() {
-    return (this.state?.pool?.pool_state ?? -1) == 1 ;
+    return (this.state?.pool?.pool_state ?? -1) == 1;
 }
+
+function isNotEnded() {
+    return (this.state?.pool?.pool_state ?? -1) != 4;
+}
+
 
 async function getPool(id) {
     let resp_json = await ApiHelper.getPool(id);
@@ -87,12 +95,28 @@ async function removeCurrentUserFromPool() {
     await ApiHelper.removeCurrentUserFromPool(this.props.object_id);
 }
 
-export default {state,
+async function fetchRoomDetailsData() {
+    await this.getPool(this.props.object_id);
+    await this.getPoolMemberNicknames(this.props.object_id);
+}
+
+export default {state, props,
+
     async onMounted(props, state) {
-        await this.getPool(props.object_id);
-        await this.getPoolMemberNicknames(props.object_id);
+        const POOL_DETAILS_UPDATE_INTERVAL = 5000;
+        await this.fetchRoomDetailsData();
+        if (this.isNotEnded()) {
+            this.state.timer = setInterval(async () => {await this.fetchRoomDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+        }
     },
-    isPoolOpen, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool
+
+    async onBeforeUnmount(props, state) {
+        if (this.state.timer != null) {
+            clearInterval(this.state.timer);
+        }
+    },
+
+    isPoolOpen, isNotEnded, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool, fetchRoomDetailsData
 };
 </script>
 </pool-details-page>

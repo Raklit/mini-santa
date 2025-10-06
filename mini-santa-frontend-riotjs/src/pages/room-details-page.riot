@@ -55,9 +55,11 @@ import ApiHelper from '../api-helper.js';
 
 let state = {
     room: null,
-    messages: [],
+    messages: new Array(),
     timer: null
 };
+
+let props = null;
 
 function isNotEnded() {
     return (this.state?.room?.room_state ?? 7) != 7;
@@ -68,6 +70,7 @@ async function getRoom(id) {
     if (resp_json.status == 'OK') {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
+        this.update();
     }
 }
 
@@ -75,6 +78,7 @@ async function getLastMessagesInRoom(id) {
     let resp_json = await ApiHelper.getLastMessagesInRoom(id);
     if (resp_json.status == 'OK') {
         this.state.messages = resp_json.body;
+        this.update();
     }
 }
 
@@ -98,7 +102,6 @@ async function onSendButtonClick() {
 async function fetchRoomData() {
     await this.getRoom(this.props.object_id);
     await this.getLastMessagesInRoom(this.props.object_id);
-    this.update();
 }
 
 export default {state, props,

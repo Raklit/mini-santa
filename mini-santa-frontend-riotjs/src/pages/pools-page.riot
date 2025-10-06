@@ -25,9 +25,11 @@
 
     let state = {
         baseUrl: ApiHelper.apiBaseUrl(),
-        pools: new Array()
-
+        pools: new Array(),
+        timer: null
     };
+
+    let props = null;
 
     let getPoolStateFromNum = ApiHelper.getPoolStateFromNum;
     
@@ -43,11 +45,27 @@
         }
     }
 
-    export default {state,
+    async function fetchPoolsData() {
+        await this.loadPools();
+    }
+
+    
+
+    export default {state, props,
+
         async onMounted(props, state) {
-            await this.loadPools();
+            const POOLS_UPDATE_INTERVAL = 5000;
+            await this.fetchPoolsData();
+            this.state.timer = setInterval(async () => {await this.fetchPoolsData();}, POOLS_UPDATE_INTERVAL);
         },
-        loadPools, getPoolStateFromNum
+
+        async onBeforeUnmount(props, state) {
+            if (this.state.timer != null) {
+                clearInterval(this.state.timer);
+            }
+        },
+
+        loadPools, getPoolStateFromNum, fetchPoolsData
     }
 </script>
 </pools-page>

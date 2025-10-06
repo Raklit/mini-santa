@@ -18,9 +18,11 @@
 
     let state = {
         baseUrl: ApiHelper.apiBaseUrl(),
-        rooms: new Array()
-
+        rooms: new Array(),
+        timer: null
     };
+
+    let props = null;
 
     let getRoomStateFromNum = ApiHelper.getRoomStateFromNum;
     
@@ -36,11 +38,25 @@
         }
     }
 
-    export default {state,
+    async function fetchRoomsData() {
+        await this.loadRooms();
+    }
+
+    export default {state, props,
+
         async onMounted(props, state) {
-            await this.loadRooms();
+            const ROOMS_UPDATE_INTERVAL = 5000;
+            await this.fetchRoomsData();
+            this.state.timer = setInterval(async () => {await this.fetchRoomsData();}, ROOMS_UPDATE_INTERVAL);
         },
-        loadRooms, getRoomStateFromNum
+
+        async onBeforeUnmount(props, state) {
+            if (this.state.timer != null) {
+                clearInterval(this.state.timer);
+            }
+        },
+
+        loadRooms, getRoomStateFromNum, fetchRoomsData
     }
 </script>
 </rooms-page>
