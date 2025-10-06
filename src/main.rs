@@ -6,7 +6,7 @@ use crate::core::config::{AppConfig};
 use crate::core::controllers::{auth_router, check_auth, hello, invite_router, ping, sign_up, user_router};
 use crate::core::data_model::traits::ILocalObject;
 use crate::core::functions::{generate_id, generate_random_token};
-use crate::core::services::{create_roles_user_info, initAdminIfNotExists, row_to_account, row_to_role, user_sign_up, IDbService, SQLiteDbService};
+use crate::core::services::{create_roles_user_info, init_admin_if_not_exists, row_to_account, row_to_role, user_sign_up, IDbService, SQLiteDbService};
 use crate::santa::background_tasks::{delete_old_messages, delete_old_pools};
 use crate::santa::controllers::santa_router;
 use crate::santa::functions::santa_init_database;
@@ -197,7 +197,7 @@ async fn main() {
 
     // create admin account
     
-    let resp = initAdminIfNotExists(&state).await;
+    let resp = init_admin_if_not_exists(&state).await;
     let body_string = resp.body.to_string();
     let body = body_string.as_str();
     if resp.is_ok() {
@@ -208,7 +208,9 @@ async fn main() {
 
     // create client
 
-    let client_secret_string = &state.config.lock().await.auth.oauth2_client_secret;
+    let conf = state.config.lock().await;
+
+    let client_secret_string = &conf.auth.oauth2_client_secret;
     let client_secret = client_secret_string.as_str();
 
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;

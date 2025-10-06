@@ -423,14 +423,18 @@ pub async fn user_create_invite_code(invite_code : &str, one_use : bool, state :
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(id).unwrap());
 }
 
-pub async fn initAdminIfNotExists(state : &AppState) -> ApiResponse {
-
+pub async fn init_admin_if_not_exists(state : &AppState) -> ApiResponse {
     let admin_exists_opt = is_admin_already_exists(state).await;
-    if admin_exists_opt.is_none_or(|b| {b}) {
+    if admin_exists_opt.is_none() {
+        let err_msg = "No access to database";
+        return  ApiResponse::error_from_str(err_msg);
+    }
+    if admin_exists_opt.is_some_and(|b| {b}) {
         let err_msg = "Admin account already exists";
         return ApiResponse::new(ApiResponseStatus::WARNING, serde_json::to_value(err_msg).unwrap());
     }
     
+
     let one_use_code_string_opt = create_random_invite_code_safe(true, state).await;
     if one_use_code_string_opt.is_none() {
         let err_msg = "Cant create random invite code for admin sign up";
@@ -438,21 +442,23 @@ pub async fn initAdminIfNotExists(state : &AppState) -> ApiResponse {
     }
     let one_use_code_string = one_use_code_string_opt.unwrap();
     let one_use_code = one_use_code_string.as_str();
-    
-    let login_string = &state.config.lock().await.admin.login;
-    let login = &login_string.as_str();
-    let password_string = &state.config.lock().await.admin.password;
+
+    let conf = state.config.lock().await;
+
+    let login_string = &conf.admin.login;
+    let login = login_string.as_str();
+    let password_string = &conf.admin.password;
     let password = password_string.as_str();
-    let nickname_string = &state.config.lock().await.admin.nickname;
+    let nickname_string = &conf.admin.nickname;
     let nickname = nickname_string.as_str();
-    let email_string = &state.config.lock().await.admin.email;
+    let email_string = &conf.admin.email;
     let email = email_string.as_str();
 
     let results = user_sign_up(login, password, password, nickname, email, one_use_code, state).await;
 
     let data_valid = results.clone().into_iter().all(|s : SignUpStatus| -> bool { s == SignUpStatus::OK });
     if data_valid {
-        add_admin_role_to_admin(state).await;
+        add_admin_role_to_admin(login, &state.clone()).await;
         let msg = "Admin created";
         return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap())
     }
@@ -484,10 +490,7 @@ pub async fn is_admin_already_exists(state : &AppState) -> Option<bool> {
     return Some(true);
 }
 
-pub async fn add_admin_role_to_admin(state : &AppState) {
-    let login_string = &state.config.lock().await.admin.login;
-    let login = login_string.as_str();
-    
+pub async fn add_admin_role_to_admin(login : &str, state : &AppState) {
     let db_service = SQLiteDbService::new(state);
     let admin = db_service.get_one_by_prop("accounts", "login", login, row_to_account).await.unwrap();
     let admin_role = db_service.get_one_by_prop("roles", "name", "administrator", row_to_role).await.unwrap();

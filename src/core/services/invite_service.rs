@@ -25,7 +25,7 @@ pub async fn create_code(id : &str, invite_code : &str, is_one_use : bool, state
         is_one_use_str = "false";
     }
 
-    let result_opt = db_service.insert("invites", vec!["id", "code", "one_use"], vec![vec![id, invite_code, is_one_use_str]]).await;
+    let result_opt = db_service.insert("invites", vec!["id", "invite_code", "one_use"], vec![vec![id, invite_code, is_one_use_str]]).await;
     if result_opt.is_none() { return None; }
     let result = result_opt.unwrap();
     return Some(result != 0);
@@ -59,7 +59,7 @@ async fn generate_random_code_safe(state : &AppState) -> Option<String> {
         let temp_code = temp_code_string.as_str();
         let code_exists_opt = is_invite_code_already_exists(temp_code, state).await;
         if code_exists_opt.is_none() { return None; }
-        if code_exists_opt.is_some_and(|b| {b}) { break; }
+        if code_exists_opt.is_some_and(|b| {!b}) { break; }
     };
     return Some(temp_code_string);
 }
