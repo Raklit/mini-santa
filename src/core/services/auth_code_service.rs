@@ -58,13 +58,13 @@ pub async fn delete_auth_code_by_code(code : &str, state : &AppState) -> () {
     let _ = db_service.delete_one_by_prop("auth_codes", "code", code).await;
 }
 
-pub async fn delete_expiried_auth_codes(state : &AppState) -> () {
-    const DELETE_EXPIRIED_AUTH_CODES_TEMPLATE : &str = "database_scripts/auth_code/delete_expiried_auth_codes.sql";
+pub async fn delete_expired_auth_codes(state : &AppState) -> () {
+    const DELETE_EXPIRED_AUTH_CODES_TEMPLATE : &str = "database_scripts/auth_code/delete_expired_auth_codes.sql";
     let now_time = Utc::now();
 
     let mut context = tera::Context::new();
     context.insert("lifetime", &state.config.lock().await.auth.check_auth_code_status_freq);
     context.insert("now", &now_time.to_rfc3339());
     
-    execute_script_template_wo_return(DELETE_EXPIRIED_AUTH_CODES_TEMPLATE, &context, &state).await;
+    execute_script_template_wo_return(DELETE_EXPIRED_AUTH_CODES_TEMPLATE, &context, &state).await;
 }

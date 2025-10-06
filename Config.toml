@@ -12,3 +12,10 @@ refresh_token_lifetime = 86400
 auth_code_lifetime = 300
 check_session_status_freq = 43200
 check_auth_code_status_freq = 150
+
+[santa]
+pool_max_lifetime = 15552000
+pool_lifetime_check_freq = 604800
+max_messages_in_room_count = 64
+message_lifetime = 2592000
+old_messages_check_freq = 900

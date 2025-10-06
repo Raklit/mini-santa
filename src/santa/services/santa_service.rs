@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use ::rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::new_id_safe, services::{escape_string, get_account_by_id, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IMessage, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_last_messages_by_room_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::{get_many_items_from_command, new_id_safe, render_query_template}, services::{escape_string, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IMessage, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_last_messages_by_room_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, row_to_pool, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -14,7 +14,8 @@ pub async fn user_create_pool(name : &str, description : &str, account_id : &str
         let err_msg = format!("Pool with name \"{name}\" already exists");
         return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap());
     }
-    create_pool(pool_id, name, description, account_id, min_price, max_price, 2000000, creation_date, PoolState::Created, state).await;
+    let lifetime = state.config.lock().await.santa.pool_max_lifetime;
+    create_pool(pool_id, name, description, account_id, min_price, max_price, lifetime, creation_date, PoolState::Created, state).await;
     return ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(new_id).unwrap());
 }
 
@@ -144,8 +145,11 @@ pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiRespo
 }
 
 pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
+    let esc_pool_id_string = escape_string(pool_id);
+    let esc_pool_id = esc_pool_id_string.as_str();
+
     // delete rooms
-    let room_option = get_rooms_by_pool_id(pool_id, state).await;
+    let room_option = get_rooms_by_pool_id(esc_pool_id, state).await;
     if room_option.is_some() {
         let rooms = room_option.unwrap();
         for room in rooms {
@@ -155,7 +159,7 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     }
 
     // delete members
-    let members_option = get_members_by_pool_id(pool_id, state).await;
+    let members_option = get_members_by_pool_id(esc_pool_id, state).await;
     if members_option.is_some() {
         let members = members_option.unwrap();
         for member in members {
@@ -165,7 +169,7 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     }
 
     // delete messages
-    let messages_option = get_messages_by_pool_id(pool_id, state).await;
+    let messages_option = get_messages_by_pool_id(esc_pool_id, state).await;
     if messages_option.is_some() {
         let messages = messages_option.unwrap();
         for message in messages {
@@ -175,7 +179,30 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     }
     
     // delete pool 
-    delete_pool_by_id(pool_id, state).await;
+    delete_pool_by_id(esc_pool_id, state).await;
+}
+
+pub async fn delete_pools_if_lifetime(state : &AppState) -> () {
+    const GET_POOLS_WITH_EXPIRED_LIFETIME_TEMPLATE : &str = "database_scripts/pool/get_pools_with_expired_lifetime.sql";
+    let now_time = Utc::now();
+    let max_lifetime = state.config.lock().await.santa.pool_max_lifetime;
+
+    let mut context = tera::Context::new();
+    context.insert("now", &now_time.to_rfc3339());
+    context.insert("max_lifetime", &max_lifetime);
+    
+    let query = render_query_template(GET_POOLS_WITH_EXPIRED_LIFETIME_TEMPLATE, &context, state).await;
+
+    let pools_opt = get_many_items_from_command(query.as_str(), state, row_to_pool).await;
+    if pools_opt.is_none() {
+        return;
+    }
+    let pools = pools_opt.unwrap();
+
+    for pool in pools {
+        let pool_id = pool.id();
+        user_delete_pool(pool_id, state).await;
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

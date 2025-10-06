@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
-use sqlx::{query, sqlite::SqliteRow, Executor, Row};
+use sqlx::{sqlite::SqliteRow, Executor, Row};
 
-use crate::{core::services::{escape_string, IDbService, SQLiteDbService}, santa::data_model::{implementations::Message, traits::IMessage}, AppState};
+use crate::{core::{functions::execute_script_template_wo_return, services::{escape_string, IDbService, SQLiteDbService}}, santa::data_model::{implementations::Message, traits::IMessage}, AppState};
 
 pub fn row_to_message(row : &SqliteRow) -> Message {
     let id : &str = row.get("id");
@@ -78,5 +78,16 @@ pub async fn get_last_messages_by_room_id(room_id : &str, limit : usize, state :
     objs.reverse();
     
     return Some(objs);
+}
 
+pub async fn delete_messages_if_limit_or_lifetime(state : &AppState) -> () {
+    const DELETE_OLD_MESSAGES_TEMPLATE : &str = "database_scripts/message/delete_old_messages.sql";
+    let now_time = Utc::now();
+
+    let mut context = tera::Context::new();
+    context.insert("lifetime", &state.config.lock().await.santa.message_lifetime);
+    context.insert("limit", &state.config.lock().await.santa.max_messages_in_room_count);
+    context.insert("now", &now_time.to_rfc3339());
+    
+    execute_script_template_wo_return(DELETE_OLD_MESSAGES_TEMPLATE, &context, &state).await;
 }

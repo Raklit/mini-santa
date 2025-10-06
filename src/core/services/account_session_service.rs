@@ -124,14 +124,14 @@ pub async fn delete_account_sessions_by_account_id(account_id : &str, state : &A
     let _ = db_service.delete_many_by_prop("account_sessions", "account_id", vec![account_id]).await;
 }
 
-pub async fn delete_account_sessions_with_expiried_refresh_tokens(state : &AppState) -> () {
-    const DELETE_ACCOUNT_SESSIONS_WITH_EXPIRIED_REFRESH_TOKENS_TEMPLATE : &str = "database_scripts/account_session/delete_account_sessions_with_expiried_refresh_tokens.sql";
+pub async fn delete_account_sessions_with_expired_refresh_tokens(state : &AppState) -> () {
+    const DELETE_ACCOUNT_SESSIONS_WITH_EXPIRED_REFRESH_TOKENS_TEMPLATE : &str = "database_scripts/account_session/delete_account_sessions_with_expired_refresh_tokens.sql";
     let now_time = Utc::now();
 
     let mut context = tera::Context::new();
-    context.insert("lifetime", &state.config.lock().await.auth.check_session_status_freq);
+    context.insert("lifetime", &state.config.lock().await.auth.refresh_token_lifetime);
     context.insert("now", &now_time.to_rfc3339());
     
-    execute_script_template_wo_return(DELETE_ACCOUNT_SESSIONS_WITH_EXPIRIED_REFRESH_TOKENS_TEMPLATE, &context, &state).await;
+    execute_script_template_wo_return(DELETE_ACCOUNT_SESSIONS_WITH_EXPIRED_REFRESH_TOKENS_TEMPLATE, &context, &state).await;
 }
 

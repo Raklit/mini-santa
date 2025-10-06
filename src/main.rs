@@ -1,18 +1,18 @@
 mod core;
 mod santa;
 
-use crate::core::backround_tasks::{delete_old_account_sessions, delete_old_auth_codes};
+use crate::core::background_tasks::{delete_old_account_sessions, delete_old_auth_codes};
 use crate::core::config::{AppConfig};
 use crate::core::controllers::{auth_router, check_auth, hello, invite_router, ping, sign_up, user_router};
 use crate::core::data_model::traits::ILocalObject;
 use crate::core::functions::generate_id;
-use crate::core::services::{create_role, create_roles_user_info, is_role_already_exists_by_name, row_to_account, row_to_invite, row_to_role, row_to_roles_user_info, user_sign_up, IDbService, SQLiteDbService};
+use crate::core::services::{create_roles_user_info, row_to_account, row_to_role, user_sign_up, IDbService, SQLiteDbService};
+use crate::santa::background_tasks::{delete_old_messages, delete_old_pools};
 use crate::santa::controllers::santa_router;
 use crate::santa::functions::santa_init_database;
 use crate::santa::services::row_to_message;
 
 use axum::middleware::from_fn_with_state;
-use axum::response::IntoResponse;
 use axum::routing::post;
 use axum:: {
     routing::get,
@@ -30,7 +30,6 @@ use tracing_subscriber::{filter, Layer};
 use tracing_subscriber::layer::SubscriberExt;
 use core::functions::core_init_database;
 use core::services::{create_client, is_account_already_exists_by_login, is_client_already_exists_by_client_name};
-use std::env;
 use std::fs::{self, OpenOptions};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -54,8 +53,15 @@ async fn init_database(state : &AppState) {
 }
 
 async fn run_background_tasks(state : &AppState) -> () {
+    tracing::info!("YEEEP1");
     delete_old_account_sessions(state).await;
+    tracing::info!("YEEEEEEEEEEEEP");
     delete_old_auth_codes(state).await;
+    tracing::info!("YEEEEEEEEEEEEP3");
+    delete_old_messages(state).await;
+    tracing::info!("YEEEEEEEEEEEEP4");
+    delete_old_pools(state).await;
+    tracing::info!("YEEEEEEEEEEEEP3");
 }
 
 // routers groups

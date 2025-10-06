@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+use crate::core::config::SantaConfig;
+
 use super::server_config::ServerConfig;
 use super::database_config::DatabaseConfig;
 use super::auth_config::AuthConfig;
@@ -9,5 +11,6 @@ use super::auth_config::AuthConfig;
 pub struct AppConfig {
     pub server : ServerConfig,
     pub database : DatabaseConfig,
-    pub auth : AuthConfig
+    pub auth : AuthConfig,
+    pub santa : SantaConfig
 }
