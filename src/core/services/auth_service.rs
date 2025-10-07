@@ -482,7 +482,12 @@ pub async fn is_admin_already_exists(state : &AppState) -> Option<bool> {
     if role_opt.is_none() { return Some(false); }
     let role = role_opt.unwrap();
     let account_id = role.account_id();
-    for table_name in vec!["accounts", "public_user_infos", "recovery_user_infos"] {
+
+    let account_exists_opt = db_service.exists_by_prop("accounts", "id", account_id).await;
+    if account_exists_opt.is_none() { return None; }
+    if account_exists_opt.is_some_and(|b| {!b}) { return Some(false);}
+
+    for table_name in vec!["public_user_infos", "recovery_user_infos"] {
         let exists_opt = db_service.exists_by_prop(table_name, "account_id", account_id).await;
         if exists_opt.is_none() { return None; }
         if exists_opt.is_some_and(| b | {!b}) { return Some(false); }

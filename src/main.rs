@@ -197,30 +197,25 @@ async fn main() {
 
     // create admin account
     
-    let resp = init_admin_if_not_exists(&state).await;
+    let cloned_state = state.clone();
+
+    let resp = init_admin_if_not_exists(&cloned_state).await;
     let body_string = resp.body.to_string();
     let body = body_string.as_str();
     if resp.is_ok() {
-        tracing::info!(body)
+        tracing::info!("{:?}", body)
     } else {
-        tracing::error!(body);
+        tracing::error!("{:?}", body);
     }
 
     // create client
 
-    let conf = state.config.lock().await;
-
-    let client_secret_string = &conf.auth.oauth2_client_secret;
-    let client_secret = client_secret_string.as_str();
-
     let is_client_already_exists = is_client_already_exists_by_client_name("api", &state).await;
     if !is_client_already_exists.is_some_and(|b| {b}) {
-        create_client(generate_id().await.as_str(), "api", client_secret, "http://localhost:8000/oauth_code_redirect", true, &state).await;
+        create_client(generate_id().await.as_str(), "api", "", "http://localhost:8000/oauth_code_redirect", true, &state).await;
     }
     
     // start threads
-
-    let cloned_state = state.clone();
 
     tokio::spawn(async move { run_background_tasks(&cloned_state).await });
     
