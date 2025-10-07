@@ -11,6 +11,7 @@ services:
       start_period: 3s
     env_file:
       - ./.env/.basic_info
+      - ./.env/.admin_info
     volumes:
       - engine-db:/executables/db:rw
     networks:

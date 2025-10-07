@@ -1,4 +1,32 @@
-EARLY WORK IN PROGRESS SECRET SANTA PROJECT ON RUST. NOT READY FOR PRODUCTION
+SECRET SANTA PROJECT ON RUST. ALMOST READY TO PRODUCTION
+
+Statup:
+- create .env folder
+- create ".basic_info" file in it
+- create also ".admin_info" file
+
+
+.basic_info content example
+DOMAIN_NAME: ""
+DOMAIN_EMAIL: ""
+DONATION_LINK: ""
+CONTACT_EMAIL: ""
+
+Fill data like your want, but donation link required (doesn't checked 123 is enough).
+
+.admin_info content example
+
+SERVER_SECRET: "123456"
+ADMIN_LOGIN: "admin"
+ADMIN_PASSWORD: "qwerty123456"
+ADMIN_NICKNAME: "BigBoss"
+ADMIN_EMAIL: "admin@test.ru"
+
+Change value like your want. Only latin and cyrillic letters allowed in nicknames.
+Password minimum length is 12 chars
+Email doesn't checked. Just write something like test email
+In data model phone is available too, but doesn't field and check yet
+
 
 PLAN:
 - end oauth2.0
@@ -8,3 +36,8 @@ PLAN:
 - develop front end
 - ???
 - PROFIT
+
+Status:
+- weak oauth2.0 server
+- santa stuff is worked
+- frontend is almost ready

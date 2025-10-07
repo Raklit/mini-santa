@@ -19,14 +19,14 @@ RUN cd /project-code && cargo build --target x86_64-unknown-linux-gnu -r --offli
 
 FROM debian:bookworm-slim AS server-preready
 
-RUN apt-get update -y && apt-get install logrotate -y
+RUN apt-get update -y && apt-get install logrotate gettext-base -y
 
 FROM server-preready AS server-ready
 
 COPY ./bash-scripts /executables/bash-scripts
 COPY ./app /executables/app
 RUN mkdir -p "/executables/db" && rm -f "/executables/app/static/index.html"
-COPY ./Config.toml /executables/
+COPY ./Config.toml.template /executables/
 COPY --from=rust-build /project-code/target/x86_64-unknown-linux-gnu/release/mini-santa /executables/mini-santa
 COPY --from=node-build /project-code/dist /executables/app/static
 COPY --from=node-build /project-code/dist/index.html /executables/app/templates

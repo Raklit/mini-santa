@@ -1,0 +1,27 @@
+[server]
+config_secret = "${SERVER_SECRET}" # keep in secret
+log_path = "./logs/activity.log"
+
+[database]
+db_file = "./db/database.db"
+connection_number = 256
+
+[admin]
+login = "${ADMIN_LOGIN}" # keep in secret
+password = "${ADMIN_PASSWORD}" # keep in secret
+nickname = "${ADMIN_NICKNAME}" # keep in secret
+email = "${ADMIN_EMAIL}" # keep in secret
+
+[auth]
+access_token_lifetime = 900
+refresh_token_lifetime = 86400
+auth_code_lifetime = 300
+check_session_status_freq = 43200
+check_auth_code_status_freq = 150
+
+[santa]
+pool_max_lifetime = 15552000
+pool_lifetime_check_freq = 604800
+max_messages_in_room_count = 64
+message_lifetime = 2592000
+old_messages_check_freq = 900
