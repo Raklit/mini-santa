@@ -1,26 +1,39 @@
 <create-pool-page>
 <div class="container padding-0">
-    <div class="row">
+    <div if={state.am_i_admin} class="row">
         <div class="column">
             <form onsubmit="{onCreateInviteCodeClick}">
                 <fieldset>
-                    <label for="invite-code" class="label-inline">Invite code</label>
-                    <input type="text" id="invite-code" name="invite_code" placeholder="Enter invite code">
-                    <label for="one-use" class="label-inline">One use code</label>
-                    <input type="checkbox" id="one-use" name="one_use">
+                    <div>
+                        <label for="invite-code" class="label-inline">Invite code</label>
+                        <input type="text" id="invite-code" name="invite_code" placeholder="Enter invite code">
+                        <input type="checkbox" id="one-use" name="one_use">
+                        <label for="one-use" class="label-inline">One use code</label>
+                    </div>
                     <input type="submit" value="Create invite code" id="create-invite-code-button" class="button-primary" />
                 </fieldset>
             </form>
         </div>
     </div>
-    <div class="row">
+    <div if={state.am_i_admin} class="row">
         <div class="column">
-            <p><a href="/">Back to index page</a></p>
+            <p><a href="/invite_codes">Back to invite codes page</a></p>
+        </div>
+    </div>
+    <div if={!state.am_i_admin} class="row">
+        <div class="column">
+            <p>Access denied. <a href="/">Back to main page</a>.</p>
         </div>
     </div>
 </div>
 <script lang="js">
     import ApiHelper from '../api-helper.js';
+
+    let state = {
+        am_i_admin: false
+    };
+
+    let props = null;
 
     async function onCreateInviteCodeClick(e) {
         e.preventDefault();
@@ -37,7 +50,20 @@
         return false;
     }
 
-    export default { onCreateInviteCodeClick };
+    export default {state, props,
+            async onMounted() {
+                try {
+                    let resp_json = await ApiHelper.amIAdmin();
+                    if (resp_json.status == 'OK') {
+                        this.state.am_i_admin = resp_json.body;
+                        this.update();
+                    }
+                } catch (error) {
+                        console.error(error.message);
+                } 
+            },
+        onCreateInviteCodeClick 
+    };
 
 </script>
 </create-pool-page>
