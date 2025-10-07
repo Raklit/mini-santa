@@ -509,7 +509,8 @@ pub async fn init_admin_if_not_exists(state : &AppState) -> ApiResponse {
     }
 
     let error_msgs = sign_up_error_description_map();
-    let err_msg : Vec<String> = results.iter().map(|&r| error_msgs.get(&r).unwrap().clone()).collect();
+    let filtered_results : Vec<SignUpStatus> = results.iter().filter(|&&s| {s != SignUpStatus::OK}).cloned().collect();
+    let err_msg : Vec<String> = filtered_results.iter().map(|&r| error_msgs.get(&r).unwrap().clone()).collect();
     return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap())
 
 }
