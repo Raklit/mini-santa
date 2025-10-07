@@ -1,18 +1,31 @@
 <index-page>
-    <p>Hello, {title}!</p>
+    <p>Hello, {state.title}!</p>
+    <p if={state.am_i_admin}><a href="/create_invite_code">Create invite code</a></p>
     <script lang="js">
         import ApiHelper from '../api-helper.js';
 
-        let title = "guest";
+        let state = {
+            title : "guest",
+            am_i_admin: false
+        };
+
+        let props = null;
 
         export default {
-            title,
+            state, props,
             async onMounted() {
                 try {
                     let resp_json = await ApiHelper.getNickname();
-                    let nickname = resp_json.body;
-                    this.title = `user with nickname \"${nickname}\"`;
-                    this.update();
+                    if (resp_json.status == 'OK') {
+                        let nickname = resp_json.body;
+                        this.state.title = `user with nickname \"${nickname}\"`;
+                        this.update();
+                    }
+                    resp_json = await ApiHelper.amIAdmin();
+                    if (resp_json.status == 'OK') {
+                        this.state.am_i_admin = resp_json.body;
+                        this.update();
+                    }
                 } catch (error) {
                         console.error(error.message);
                 } 

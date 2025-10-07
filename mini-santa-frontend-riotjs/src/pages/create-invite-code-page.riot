@@ -1,0 +1,43 @@
+<create-pool-page>
+<div class="container padding-0">
+    <div class="row">
+        <div class="column">
+            <form onsubmit="{onCreateInviteCodeClick}">
+                <fieldset>
+                    <label for="invite-code" class="label-inline">Invite code</label>
+                    <input type="text" id="invite-code" name="invite_code" placeholder="Enter invite code">
+                    <label for="one-use" class="label-inline">One use code</label>
+                    <input type="checkbox" id="one-use" name="one_use">
+                    <input type="submit" value="Create invite code" id="create-invite-code-button" class="button-primary" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <p><a href="/">Back to index page</a></p>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+    async function onCreateInviteCodeClick(e) {
+        e.preventDefault();
+
+        const inviteCode = document.getElementById('invite-code').value;
+        const oneUse = document.getElementById('one-use').checked;
+
+        try {
+            await ApiHelper.createInviteCode(inviteCode, oneUse);
+        } catch (error) {
+            console.log('Error while request: ', error.message);
+        }
+
+        return false;
+    }
+
+    export default { onCreateInviteCodeClick };
+
+</script>
+</create-pool-page>

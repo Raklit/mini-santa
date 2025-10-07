@@ -7,6 +7,8 @@ import LoginPage from './pages/login-page.riot';
 import LogoutPage from './pages/logout-page.riot';
 import IndexPage from './pages/index-page.riot';
 
+import CreateInviteCodePage from './pages/create-invite-code-page.riot';
+
 import PoolDetailsPage from './pages/pool-details-page.riot';
 import CreatePoolPage from './pages/create-pool-page.riot';
 import PoolsPage from './pages/pools-page.riot';
@@ -40,6 +42,8 @@ riot.register("signup-page", SignUpPage);
 riot.register("login-page", LoginPage);
 riot.register("logout-page", LogoutPage)
 riot.register("index-page", IndexPage);
+
+riot.register("create-invite-code-page", CreateInviteCodePage);
 
 riot.register("create-pool-page", CreatePoolPage);
 riot.register("pool-details-page", PoolDetailsPage);
