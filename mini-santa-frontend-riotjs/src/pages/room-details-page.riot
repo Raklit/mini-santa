@@ -10,6 +10,16 @@
     </div>
     <div class="row">
         <div class="column">
+            <div class="room-header-wishlist-block">
+                <details>
+                    <summary><b>Recipient wishlist</b></summary>
+                    <p>{state?.room?.recipient_wishlist ?? ""}</p>
+                </details>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
             <div id="message-list-block" class="container padding-0">
                 <div each={item in state.messages} class="row">
                     <div class="column">
