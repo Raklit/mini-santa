@@ -34,6 +34,7 @@ async function loginByPassword(login, password) {
     localStorage.setItem('refresh_token', resp_json["refresh_token"]);
     localStorage.setItem('access_token', resp_json["access_token"]);
     localStorage.setItem('expires', expires);
+    return resp_json;
 }
 
 

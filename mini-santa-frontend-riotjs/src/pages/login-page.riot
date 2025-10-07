@@ -21,6 +21,7 @@
 </div>
 <script lang="js">
     import AuthHelper from '../auth-helper.js';
+    import { router } from "@riotjs/route";
 
     async function onLogInClick(e) {
         e.preventDefault();
@@ -29,7 +30,10 @@
         const password = document.getElementById("password").value;
 
         try {
-            await AuthHelper.loginByPassword(login, password);
+            let resp_json = await AuthHelper.loginByPassword(login, password);
+            if (resp_json && resp_json["access_token"]) {
+                router.push("/");
+            }
         } catch (error) {
             console.log('Access Token error: ', error.message);
         }
