@@ -14,7 +14,7 @@
                 <div class="container">
                     <div class="row">
                         <div class="column">
-                            <button if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
+                            <button if={canRulePool() && isNotEnded()} onclick={onPushStateClick}>Push state</button>
                         </div>
                         <div class="column">
                             <a if={isPoolOpen()} href="/pools/id/{props.object_id}/add" class="button">Add me to pool</a>

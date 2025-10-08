@@ -3,14 +3,18 @@
     <div class="row">
         <div class="column">
             <div class="room-top-header-block">
-                <div class="room-header-avatar-block"><img if={state?.room?.recipient_avatar} src="{state?.room?.recipient_avatar ?? ""}" alt="abstract avatar special for {state?.room?.recipient_nickname ?? "nobody"}"></div>
+                <div if={state?.room?.am_i_recipient === null} class="room-header-avatar-block">ERROR</div>
+                <div if={state?.room?.am_i_recipient === false} class="room-header-avatar-block recipient-header-avatar-block"><img if={state?.room?.recipient_avatar} src="{state?.room?.recipient_avatar ?? ""}" alt="abstract avatar special for {state?.room?.recipient_nickname ?? "nobody"}"></div>
+                <div if={state?.room?.am_i_recipient === true} class="room-header-avatar-block santa-header-avatar-block"><img src="{santaAvatar}" alt="santa avatar"></div>
                 <div class="room-header-buttons-block"><button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button></div>
             </div>
         </div>
     </div>
     <div class="row">
         <div class="column">
-             <div class="room-header-info-block">"{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")</div>
+            <div if={state?.room?.am_i_recipient == null} class="room-header-info-block">"ERROR" (pool "{state?.room?.pool_name ?? ""}")</div>
+            <div if={state?.room?.am_i_recipient === false} class="room-header-info-block">Chat with<br>"{state?.room?.recipient_nickname ?? ""}"<br>(pool "{state?.room?.pool_name ?? ""}")</div>
+            <div if={state?.room?.am_i_recipient === true} class="room-header-info-block">Chat with<br>YOUR SANTA<br>(pool "{state?.room?.pool_name ?? ""}")</div>
         </div>
     </div>
     <div class="row">
@@ -93,6 +97,8 @@ async function getRoom(id) {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
         this.state.room.recipient_avatar = this.recipientAvatar();
+        this.state.room.am_i_recipient = await this.amIRecipient();
+        console.log(this.state.room.am_i_recipient);
         this.update();
     }
 }
@@ -133,6 +139,15 @@ function recipientAvatar() {
     return 'data:image/svg+xml;utf8,' + encodeURIComponent(minidenticon(this.state?.room?.recipient_nickname ?? "nothing", 100, 100));
 }
 
+async function amIRecipient() {
+    let resp_json = await ApiHelper.getId();
+    let not_valid = !resp_json || !resp_json.status || resp_json.status != 'OK';
+    if (not_valid) { return null; }
+    let my_id = resp_json.body;
+    let recipient_id = this.state?.room?.recipient_id ?? "";
+    return my_id == recipient_id;
+}
+
 export default {state, props,
     async onMounted(props, state) {
         const CHAT_UPDATE_INTERVAL = 5000;
@@ -148,7 +163,7 @@ export default {state, props,
         }
     },
 
-    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded, santaAvatar, recipientAvatar
+    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded, santaAvatar, recipientAvatar, amIRecipient
 };
 </script>
 </room-details-page>

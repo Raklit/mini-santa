@@ -37,7 +37,7 @@
     width: auto;
 }
 
-.recipient-message .message-avatar-block img, .room-header-avatar-block img {
+.recipient-message .message-avatar-block img, .recipient-header-avatar-block img {
     background-color: var(--avatar-back-color);
 }
 
