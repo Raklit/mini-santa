@@ -206,4 +206,18 @@ async function sendMessage(room_id, text_content) {
     return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/rooms/id/${room_id}/send_message`, params, false);
 }
 
-export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage };
+async function signOutFromAll() {
+    const headers = new Map();
+    headers.set('Content-Type', 'application/json');
+
+    const params = {
+        method: 'DELETE',
+        headers: headers,
+        body: ""
+    };
+    let resp_json = await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/users/sign_out_from_all`, params);
+    await AuthHelper.logout();
+    return;
+}
+
+export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage, signOutFromAll };

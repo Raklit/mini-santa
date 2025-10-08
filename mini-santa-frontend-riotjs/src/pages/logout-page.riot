@@ -7,17 +7,17 @@
     </div>
 </div>
 <script lang="js">
-    import AuthHelper from '../auth-helper.js';
+    import ApiHelper from '../api-helper.js';
     import { router } from "@riotjs/route";
 
     let state = {
-        baseUrl: AuthHelper.apiBaseUrl(),
+        baseUrl: ApiHelper.apiBaseUrl(),
         pools: new Array()
 
     };
     
     async function logout() {
-        await AuthHelper.logout();
+        await ApiHelper.signOutFromAll();
         setTimeout(() => {
             router.push("/login");
         }, 3000);

@@ -1,6 +1,6 @@
-use axum::{body::Body, extract::{Request, State}, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
+use axum::{body::Body, extract::{Request, State}, http::StatusCode, response::IntoResponse, routing::{delete, get}, Json, Router};
 
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::IPublicUserInfo, services::{get_public_user_info_by_account_id, is_admin_already_exists}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::IPublicUserInfo, services::{get_public_user_info_by_account_id, is_admin_already_exists, sign_out_from_all}}, AppState};
 
 pub async fn get_current_user_id(State(_) : State<AppState>, request : Request<Body>) -> impl IntoResponse {
     let account_id = request.headers().get("account_id").unwrap().to_str().unwrap();
@@ -27,9 +27,18 @@ pub async fn is_user_admin(State(state) : State<AppState>, request : Request<Bod
 
 }
 
+pub async fn sign_out_from_all_handler(State(state) : State<AppState>, request : Request<Body>) -> impl IntoResponse {
+    let account_id = request.headers().get("account_id").unwrap().to_str().unwrap();
+    sign_out_from_all(account_id, &state).await;
+    let msg = "Close all account session complete";
+    let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg).unwrap());
+    return (StatusCode::OK, Json(resp)).into_response();
+}
+
 pub fn user_router(_: &AppState) -> Router<AppState> {
     return Router::new()
     .route("/my_id", get(get_current_user_id))
     .route("/my_nickname", get(get_current_user_nickname))
-    .route("/am_i_admin", get(is_user_admin));
+    .route("/am_i_admin", get(is_user_admin))
+    .route("/sign_out_from_all", delete(sign_out_from_all_handler));
 }
