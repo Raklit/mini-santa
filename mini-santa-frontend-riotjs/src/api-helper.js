@@ -104,6 +104,22 @@ async function getPool(id) {
     return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}`);
 }
 
+async function deletePool(id) {
+    const headers = new Map();
+    headers.set('Content-Type', 'application/json');
+
+    const params = {
+        method: 'DELETE',
+        headers: headers,
+        body: ""
+    };
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/delete_pool`, params, true);
+}
+
+async function amIPoolOwner(id) {
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/am_i_resource_owner`);
+}
+
 async function getPoolMemberNicknames(id) {
     return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/members`);
 }
@@ -220,4 +236,4 @@ async function signOutFromAll() {
     return;
 }
 
-export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, getPool, getPools, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage, signOutFromAll };
+export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, amIPoolOwner, getPool, getPools, deletePool, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage, signOutFromAll };

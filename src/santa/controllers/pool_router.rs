@@ -2,7 +2,7 @@ use axum::{body::Body, extract::{Path, Request, State}, http::{HeaderMap, Status
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqliteRow;
 
-use crate::{core::{controllers::{ApiResponse, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{row_to_pool, user_create_pool, user_delete_member_from_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus, ICRUDController, WhoIsExecutor}, data_model::traits::IAccountRelated, services::{escape_string, IDbService, SQLiteDbService}}, santa::{data_model::{enums::PoolState, implementations::Pool, traits::IPool}, services::{get_pool_by_id, row_to_pool, user_create_pool, user_delete_member_from_pool, user_delete_pool, user_get_member_nicknames_in_pool, user_pool_state_push}}, AppState};
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePoolRequestData {
@@ -84,9 +84,52 @@ impl PoolCRUDController {
         }
         return Self::access_denied_response().into_response();
     }
-}
 
-impl PoolCRUDController {}
+    pub async fn user_is_pool_owner_or_admin_or_moderator_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let esc_id_string = escape_string(id.as_str());
+        let pool_id= esc_id_string.as_str();
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let (_, role) = Self::basic_check_owner(&state, executor_id, pool_id).await;
+        
+        if role == WhoIsExecutor::NoMatter {
+            let err_msg = format!("Pool with id \"{pool_id}\" not found");
+            let resp = ApiResponse::error_from_str(err_msg.as_str());
+            return (StatusCode::NOT_FOUND, Json(resp)).into_response();
+        }
+
+        let result = role == WhoIsExecutor::ResourceOwner || role == WhoIsExecutor::Admin || role == WhoIsExecutor::Moderator;
+        let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(result).unwrap());
+        return (StatusCode::OK, Json(resp)).into_response();
+    }
+
+    pub async fn user_delete_pool_by_id_handler(State(state) : State<AppState>, Path(id) : Path<String>, headers : HeaderMap, _request : Request<Body>) -> impl IntoResponse {
+        let esc_id_string = escape_string(id.as_str());
+        let pool_id= esc_id_string.as_str();
+        let executor_id = headers.get("account_id").unwrap().to_str().unwrap();
+        let (_, role) = Self::basic_check_owner(&state, executor_id, pool_id).await;
+        
+        if role == WhoIsExecutor::NoMatter {
+            let err_msg = format!("Pool with id \"{pool_id}\" not found");
+            let resp = ApiResponse::new(ApiResponseStatus::WARNING, serde_json::to_value(err_msg.as_str()).unwrap());
+            return (StatusCode::OK, Json(resp)).into_response();
+        }
+
+        let access = role == WhoIsExecutor::ResourceOwner || role == WhoIsExecutor::Admin || role == WhoIsExecutor::Moderator;
+        if !access { return Self::access_denied_response().into_response(); }
+
+        let pool = get_pool_by_id(pool_id, &state).await.unwrap();
+        if pool.state() != PoolState::Ended {
+            let err_msg = format!("Pool with id \"{pool_id}\" is not ended. Only ended pools can be deleted");
+            let resp = ApiResponse::error_from_str(err_msg.as_str());
+            return (StatusCode::BAD_REQUEST, Json(resp)).into_response();
+        }
+        user_delete_pool(pool_id, &state).await;
+
+        let msg = format!("Pool with id \"{pool_id}\" was successfully deleted");
+        let resp = ApiResponse::new(ApiResponseStatus::OK, serde_json::to_value(msg.as_str()).unwrap());
+        return (StatusCode::OK, Json(resp)).into_response();
+    }
+}
 
 impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
     fn object_type_name() -> String { return String::from("pool"); }
@@ -106,7 +149,8 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
             .route("/id/{id}", get(Self::get_object_by_id_handler))
             .route("/", post(Self::create_object_handler))
             .route("/id/{id}", put(Self::update_object_by_id_handler))
-            .route("/id/{id}", delete(Self::delete_object_by_id_handler));
+            .route("/id/{id}", delete(Self::delete_object_by_id_handler))
+            .route("/id/{id}/delete_pool", delete(Self::delete_object_by_id_handler));
     }
     
     async fn check_perm_create(_state : &AppState, _executor_id : &str) -> bool {
@@ -153,7 +197,8 @@ pub fn pool_router(state : &AppState) -> Router<AppState> {
     .route("/id/{id}/members", get(PoolCRUDController::user_get_member_nicknames_in_pool_handler))
     .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler))
     .route("/id/{id}/remove_me", delete(PoolCRUDController::user_delete_me_from_pool_handler))
-    .route("/id/{id}/remove_member/{account_id}", delete(PoolCRUDController::user_delete_member_from_pool_handler));
+    .route("/id/{id}/remove_member/{account_id}", delete(PoolCRUDController::user_delete_member_from_pool_handler))
+    .route("/id/{id}/am_i_resource_owner", get(PoolCRUDController::user_is_pool_owner_or_admin_or_moderator_handler));
     return PoolCRUDController::objects_router(state)
     .merge(router);
 }

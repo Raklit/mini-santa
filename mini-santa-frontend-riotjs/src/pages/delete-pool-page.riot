@@ -1,0 +1,116 @@
+<delete-pool-page>
+<div class="container padding-0">
+    <div if={!isNotEnded() && canRulePool()} class="row">
+        <div class="column">
+            <h4>Do you want delete pool "{state?.pool?.name ?? ""}"?</h4>
+            <p>Input "delete" for confirm action</p>
+            <form onsubmit="{onDeletePoolClick}">
+                <fieldset>
+                    <div>
+                        <label for="confirm-delete" class="label-inline">Confirm action</label>
+                        <input type="text" id="confirm-delete" name="confirm_delete" placeholder="Input 'delete' for confirm">
+                    </div>
+                    <input type="submit" value="Delete pool" id="delete-pool-button" class="button-primary" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <div if={!isNotEnded() && canRulePool()} class="row">
+        <div class="column">
+            <p><a href="/pools/id/{props.object_id}">Back to pool details</a></p>
+        </div>
+    </div>
+    <div if={!canRulePool()} class="row">
+        <div class="column">
+            <p>Access denied. <a href="/pools/id/{props.object_id}">Back to pool details</a>.</p>
+        </div>
+    </div>
+    <div if={isNotEnded() && canRulePool()} class="row">
+        <div class="column">
+            <p>Pool is not ended yet. <a href="/pools/id/{props.object_id}">Back to pool details</a>.</p>
+        </div>
+    </div>
+</div>
+<script lang="js">
+    import ApiHelper from '../api-helper.js';
+
+let state = {
+    pool: null,
+    members: new Array(),
+    timer: null
+};
+
+let props = null;
+
+function isPoolOpen() {
+    return (this.state?.pool?.pool_state ?? -1) == 1;
+}
+
+function canRulePool() {
+    return (this.state?.pool?.am_i_pool_owner ?? false) === true
+}
+
+function isNotEnded() {
+    return (this.state?.pool?.pool_state ?? -1) != 4;
+}
+
+
+async function getPool(id) {
+    let resp_json = await ApiHelper.getPool(id);
+    if (resp_json.status == 'OK') {
+        this.state.pool = resp_json.body;
+        this.state.pool.pool_state_desc = ApiHelper.getPoolStateFromNum(this.state.pool.pool_state);
+        this.state.pool.am_i_pool_owner = await this.amIPoolOwner(id);
+        this.update();
+    }
+}
+
+async function amIPoolOwner(id) {
+        let resp_json = await ApiHelper.amIPoolOwner(id) 
+        return resp_json && resp_json.status &&  resp_json.status == 'OK' && resp_json.body === true
+}
+
+async function fetchPoolDetailsData() {
+    await this.getPool(this.props.object_id);
+}
+
+async function deletePool() {
+    try {
+        await ApiHelper.deletePool(this.props.object_id);
+    } catch (error) {
+        console.log('Error while request: ', error.message);
+    }
+}
+
+async function onDeletePoolClick(e) {
+    e.preventDefault();
+
+    let inputField = document.getElementById("confirm-delete");
+    let text = inputField.value;
+    if (text == "delete" && this.canRulePool() && !this.isNotEnded()) {
+        await this.deletePool(this.props.object_id)
+    }
+    
+    return false;
+}
+
+export default {state, props,
+
+    async onMounted(props, state) {
+        const POOL_DETAILS_UPDATE_INTERVAL = 5000;
+        await this.fetchPoolDetailsData();
+        if (this.isNotEnded()) {
+            this.state.timer = setInterval(async () => {await this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+        }
+    },
+
+    async onBeforeUnmount(props, state) {
+        if (this.state.timer != null) {
+            clearInterval(this.state.timer);
+        }
+    },
+
+    isPoolOpen, canRulePool, isNotEnded, getPool, amIPoolOwner, fetchPoolDetailsData, deletePool, onDeletePoolClick
+};
+</script>
+</delete-pool-page>

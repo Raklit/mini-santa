@@ -14,7 +14,7 @@
                 <div class="container">
                     <div class="row">
                         <div class="column">
-                            <button onclick={onPushStateClick}>Push state</button>
+                            <button if={isNotEnded()} onclick={onPushStateClick}>Push state</button>
                         </div>
                         <div class="column">
                             <a if={isPoolOpen()} href="/pools/id/{props.object_id}/add" class="button">Add me to pool</a>
@@ -24,7 +24,14 @@
                         </div>
                     </div>
                 </div>
-                <br>
+                <div if={canRulePool() && !isNotEnded()} class="container">
+                    <div class="row">
+                        <div class="column">
+                            <p><a href="/pools/id/{props.object_id}/delete_pool">Delete pool</a></p>
+                        </div>
+                    </div>
+                </div>
+                <br if={canRulePool() && !isNotEnded()}>
                 <h4>Pool members</h4>
                 <div class="container">
                     <div each={item in state.members} class="row">
@@ -35,7 +42,7 @@
                                         <p>{item.nickname}</p>
                                     </div>
                                     <div class="column">
-                                        <button if={isPoolOpen()} onclick="{() => removeUserFromPool(item.account_id)}">Remove "{item.nickname}" from pool</button>
+                                        <button if={isPoolOpen() && canRulePool()} onclick="{() => removeUserFromPool(item.account_id)}">Remove "{item.nickname}" from pool</button>
                                     </div>
                                 </div>
                             </div>
@@ -61,6 +68,10 @@ function isPoolOpen() {
     return (this.state?.pool?.pool_state ?? -1) == 1;
 }
 
+function canRulePool() {
+    return (this.state?.pool?.am_i_pool_owner ?? false) === true
+}
+
 function isNotEnded() {
     return (this.state?.pool?.pool_state ?? -1) != 4;
 }
@@ -71,6 +82,7 @@ async function getPool(id) {
     if (resp_json.status == 'OK') {
         this.state.pool = resp_json.body;
         this.state.pool.pool_state_desc = ApiHelper.getPoolStateFromNum(this.state.pool.pool_state);
+        this.state.pool.am_i_pool_owner = await this.amIPoolOwner(id);
         this.update();
     }
 }
@@ -95,7 +107,12 @@ async function removeCurrentUserFromPool() {
     await ApiHelper.removeCurrentUserFromPool(this.props.object_id);
 }
 
-async function fetchRoomDetailsData() {
+async function amIPoolOwner(id) {
+        let resp_json = await ApiHelper.amIPoolOwner(id);
+        return resp_json && resp_json.status &&  resp_json.status == 'OK' && resp_json.body === true
+}
+
+async function fetchPoolDetailsData() {
     await this.getPool(this.props.object_id);
     await this.getPoolMemberNicknames(this.props.object_id);
 }
@@ -104,9 +121,9 @@ export default {state, props,
 
     async onMounted(props, state) {
         const POOL_DETAILS_UPDATE_INTERVAL = 5000;
-        await this.fetchRoomDetailsData();
+        await this.fetchPoolDetailsData();
         if (this.isNotEnded()) {
-            this.state.timer = setInterval(async () => {await this.fetchRoomDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+            this.state.timer = setInterval(async () => {await this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
         }
     },
 
@@ -116,7 +133,7 @@ export default {state, props,
         }
     },
 
-    isPoolOpen, isNotEnded, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool, fetchRoomDetailsData
+    isPoolOpen, canRulePool, isNotEnded, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool, amIPoolOwner, fetchPoolDetailsData
 };
 </script>
 </pool-details-page>

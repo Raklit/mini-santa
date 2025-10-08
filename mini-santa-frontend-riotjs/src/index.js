@@ -14,6 +14,7 @@ import InviteCodesPage from './pages/invite-codes-page.riot';
 
 import PoolDetailsPage from './pages/pool-details-page.riot';
 import CreatePoolPage from './pages/create-pool-page.riot';
+import DeletePoolPage from './pages/delete-pool-page.riot';
 import PoolsPage from './pages/pools-page.riot';
 import AddToPoolPage from './pages/add-to-pool-page.riot';
 
@@ -50,6 +51,7 @@ riot.register("create-invite-code-page", CreateInviteCodePage);
 riot.register("invite-codes-page", InviteCodesPage);
 
 riot.register("create-pool-page", CreatePoolPage);
+riot.register("delete-pool-page", DeletePoolPage);
 riot.register("pool-details-page", PoolDetailsPage);
 riot.register("add-to-pool-page", AddToPoolPage);
 riot.register("pools-page", PoolsPage);
