@@ -93,7 +93,6 @@ async function getRoom(id) {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
         this.state.room.recipient_avatar = this.recipientAvatar();
-        console.log(this.state.room.recipient_avatar);
         this.update();
     }
 }
