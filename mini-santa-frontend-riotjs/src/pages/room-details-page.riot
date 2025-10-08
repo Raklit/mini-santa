@@ -2,10 +2,15 @@
 <div class="container padding-0">
     <div class="row">
         <div class="column">
-            <div class="room-header-block">
-                <div class="room-header-info-block">"{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")</div>
+            <div class="room-top-header-block">
+                <div class="room-header-avatar-block"><img if={state?.room?.recipient_avatar} src="{state?.room?.recipient_avatar ?? ""}" alt="abstract avatar special for {state?.room?.recipient_nickname ?? "nobody"}"></div>
                 <div class="room-header-buttons-block"><button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button></div>
             </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+             <div class="room-header-info-block">"{state?.room?.recipient_nickname ?? ""}" (pool "{state?.room?.pool_name ?? ""}")</div>
         </div>
     </div>
     <div class="row">
@@ -23,14 +28,19 @@
             <div id="message-list-block" class="container padding-0">
                 <div each={item in state.messages} class="row">
                     <div class="column">
-                        <div class="container message-block">
+                        <div class="container message-block {item.is_recipient ? "recipient-message" : "santa-message"}">
                             <div class="row">
                                 <div class="column">
-                                    <div class="message-avatar-block">
-                                        Avatar
-                                    </div>
-                                    <div class="message-author-block">
-                                        {item.is_recipient ? state?.room?.recipient_nickname ?? "" : "Santa"}
+                                    <div class="message-header-block">
+                                        <div if={item.is_recipient} class="message-avatar-block">
+                                            <img if={state?.room?.recipient_avatar} src="{state?.room?.recipient_avatar ?? ""}" alt="abstract avatar special for {state?.room?.recipient_nickname ?? "nobody"}">
+                                        </div>
+                                        <div if={!item.is_recipient} class="message-avatar-block">
+                                            <img src="{santaAvatar}" alt="santa avatar">
+                                        </div>
+                                        <div class="message-author-block">
+                                            {item.is_recipient ? state?.room?.recipient_nickname ?? "" : "Santa"}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -61,6 +71,8 @@
     </div>
 </div>
 <script lang="js">
+import { minidenticon } from 'minidenticons';
+import santaAvatar from '../assets/img/santa_avatar.png';
 import ApiHelper from '../api-helper.js';
 
 let state = {
@@ -80,6 +92,8 @@ async function getRoom(id) {
     if (resp_json.status == 'OK') {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
+        this.state.room.recipient_avatar = this.recipientAvatar();
+        console.log(this.state.room.recipient_avatar);
         this.update();
     }
 }
@@ -116,6 +130,10 @@ async function fetchRoomData() {
     await this.getLastMessagesInRoom(this.props.object_id);
 }
 
+function recipientAvatar() {
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(minidenticon(this.state?.room?.recipient_nickname ?? "nothing", 100, 100));
+}
+
 export default {state, props,
     async onMounted(props, state) {
         const CHAT_UPDATE_INTERVAL = 5000;
@@ -131,7 +149,7 @@ export default {state, props,
         }
     },
 
-    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded
+    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded, santaAvatar, recipientAvatar
 };
 </script>
 </room-details-page>

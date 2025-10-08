@@ -1,9 +1,5 @@
-.room-header-block {
+.room-top-header-block {
     display: flex;
-}
-
-.room-header-info-block {
-    width: 80%;
 }
 
 .room-header-buttons-block {
@@ -32,16 +28,23 @@
     margin-bottom: 1rem;
 }
 
-.message-avatar-block {
-    display: inline-block;
-    width: 20%;
+.message-header-block {
+    display: flex;
+}
+
+.room-header-avatar-block img, .message-avatar-block img {
+    height: 5rem;
+    width: auto;
+}
+
+.recipient-message .message-avatar-block img, .room-header-avatar-block img {
+    background-color: var(--avatar-back-color);
 }
 
 .message-author-block {
-    display: inline-block;
-    width: 80%;
-    vertical-align: bottom;
+    flex: 1;
     padding-left: 1rem;
+    padding-top: 1rem;
 }
 
 .message-text-block {

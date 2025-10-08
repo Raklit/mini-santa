@@ -1,5 +1,7 @@
 import * as riot from 'riot'
 import { Route, Router } from '@riotjs/route';
+import { minidenticon } from 'minidenticons';
+
 import App from './app.riot'
 
 import SignUpPage from './pages/signup-page.riot';
