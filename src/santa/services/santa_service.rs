@@ -151,37 +151,33 @@ pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiRespo
 }
 
 pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
+    let db_service = SQLiteDbService::new(state);
+    
     let esc_pool_id_string = escape_string(pool_id);
     let esc_pool_id = esc_pool_id_string.as_str();
 
+    // delete messages
+    let messages_option = get_messages_by_pool_id(esc_pool_id, state).await;
+    if messages_option.is_some() {
+        let messages = messages_option.unwrap();
+        let messages_ids : Vec<&str> = messages.iter().map(|m| {m.id()}).collect();
+        db_service.delete_many_by_prop("messages", "id", messages_ids).await;
+    }
+
     // delete rooms
-    let room_option = get_rooms_by_pool_id(esc_pool_id, state).await;
-    if room_option.is_some() {
-        let rooms = room_option.unwrap();
-        for room in rooms {
-            let room_id = room.id();
-            delete_room_by_id(room_id, state).await;
-        }
+    let rooms_option = get_rooms_by_pool_id(esc_pool_id, state).await;
+    if rooms_option.is_some() {
+        let rooms = rooms_option.unwrap();
+        let rooms_ids : Vec<&str> = rooms.iter().map(|r| {r.id()}).collect();
+        db_service.delete_many_by_prop("rooms", "id", rooms_ids).await;
     }
 
     // delete members
     let members_option = get_members_by_pool_id(esc_pool_id, state).await;
     if members_option.is_some() {
         let members = members_option.unwrap();
-        for member in members {
-            let member_id = member.id();
-            delete_member_by_id(member_id, state).await;
-        }
-    }
-
-    // delete messages
-    let messages_option = get_messages_by_pool_id(esc_pool_id, state).await;
-    if messages_option.is_some() {
-        let messages = messages_option.unwrap();
-        for message in messages {
-            let message_id = message.id();
-            delete_message_by_id(message_id, state).await;
-        }
+        let members_ids : Vec<&str> = members.iter().map(|m| {m.id()}).collect();
+        db_service.delete_many_by_prop("members", "id", members_ids).await;
     }
     
     // delete pool 
