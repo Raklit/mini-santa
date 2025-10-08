@@ -98,7 +98,6 @@ async function getRoom(id) {
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
         this.state.room.recipient_avatar = this.recipientAvatar();
         this.state.room.am_i_recipient = await this.amIRecipient();
-        console.log(this.state.room.am_i_recipient);
         this.update();
     }
 }
