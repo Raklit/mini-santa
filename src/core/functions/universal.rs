@@ -55,7 +55,7 @@ pub async fn render_query_template(template_name : &str, context : &tera::Contex
     extended_context.extend(context.clone());
     extended_context.extend(state.context.lock().await.clone());
 
-    // get sql query from temaplate and extended context
+    // get sql query from template and extended context
     return state.tera.lock().await.render(template_name, &extended_context).unwrap();
 }
 
