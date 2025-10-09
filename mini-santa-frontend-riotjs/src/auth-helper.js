@@ -85,8 +85,15 @@ async function signup(login, password, confirmPassword, nickname, email, inviteC
     const headers = new Map();
     headers.set('Content-Type', 'application/json');
     let params = {method: "POST", headers: headers, body: JSON.stringify(body)};
-    return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params);
+    return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params, false, false);
+}
 
+function amIInSystem() {
+    const accessToken = localStorage.getItem('access_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+    const expires = localStorage.getItem('expires');
+
+    return !(!accessToken || !refreshToken || !expires);   
 }
 
 async function getAccessToken() {
@@ -113,18 +120,20 @@ async function goToLoginPageIfNeed() {
     return false;
 }
 
-async function sendRequest(url, params = {method: 'GET', headers: new Map()}) {
-    while (params.headers.has('Authorization')) {
-        params.headers.removeItem('Authorization');
+async function sendRequest(url, params = {method: 'GET', headers: new Map()}, needAuth = true) {
+    if (needAuth) {
+        while (params.headers.has('Authorization')) {
+            params.headers.removeItem('Authorization');
+        }
+        const accessToken = await getAccessToken();
+        params.headers.set('Authorization', `Bearer ${accessToken}`);
     }
-    const accessToken = await getAccessToken();
-    params.headers.set('Authorization', `Bearer ${accessToken}`);
     return await fetch(url, params);
 }
 
-async function sendRequestWithStatusHandler(url, params = {method: 'GET', headers: new Map()}, showResultOnOk = false) {
+async function sendRequestWithStatusHandler(url, params = {method: 'GET', headers: new Map()}, showResultOnOk = false, needAuth = true) {
     try {
-        const response = await sendRequest(url, params);
+        const response = await sendRequest(url, params, needAuth);
         const resp_json = await response.json();
         if (showResultOnOk || resp_json.status != 'OK') {
             InfoHandler.triggerInfo(JSON.stringify(resp_json));
@@ -138,5 +147,5 @@ async function sendRequestWithStatusHandler(url, params = {method: 'GET', header
 }
 
 
-export default { apiBaseUrl, loginByPassword, refreshTokens, getAccessToken, logout, signup, sendRequest, sendRequestWithStatusHandler };
+export default { apiBaseUrl, amIInSystem, loginByPassword, refreshTokens, getAccessToken, logout, signup, sendRequest, sendRequestWithStatusHandler };
 

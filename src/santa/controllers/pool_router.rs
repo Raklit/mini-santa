@@ -150,7 +150,6 @@ impl ICRUDController<CreatePoolRequestData, Pool> for PoolCRUDController {
             .route("/", post(Self::create_object_handler))
             .route("/id/{id}", put(Self::update_object_by_id_handler))
             .route("/id/{id}", delete(Self::delete_object_by_id_handler))
-            .route("/id/{id}/delete_pool", delete(Self::delete_object_by_id_handler));
     }
     
     async fn check_perm_create(_state : &AppState, _executor_id : &str) -> bool {
@@ -198,7 +197,8 @@ pub fn pool_router(state : &AppState) -> Router<AppState> {
     .route("/id/{id}/push_state", post(PoolCRUDController::user_push_pool_state_handler))
     .route("/id/{id}/remove_me", delete(PoolCRUDController::user_delete_me_from_pool_handler))
     .route("/id/{id}/remove_member/{account_id}", delete(PoolCRUDController::user_delete_member_from_pool_handler))
-    .route("/id/{id}/am_i_resource_owner", get(PoolCRUDController::user_is_pool_owner_or_admin_or_moderator_handler));
+    .route("/id/{id}/am_i_resource_owner", get(PoolCRUDController::user_is_pool_owner_or_admin_or_moderator_handler))
+    .route("/id/{id}/remove_pool", delete(PoolCRUDController::user_delete_pool_by_id_handler));
     return PoolCRUDController::objects_router(state)
     .merge(router);
 }

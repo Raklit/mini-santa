@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use ::rand::{seq::SliceRandom, rng};
 use serde::{Deserialize, Serialize};
-use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::traits::{IAccountRelated, ILocalObject, IPublicUserInfo}, functions::{get_many_items_from_command, new_id_safe, render_query_template}, services::{escape_string, get_public_user_info_by_account_id, is_account_already_exists_by_id, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, traits::{IMember, IMessage, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, delete_message_by_id, delete_pool_by_id, delete_room_by_id, get_last_messages_by_room_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_messages_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_pool_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, row_to_pool, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
+use crate::{core::{controllers::{ApiResponse, ApiResponseStatus}, data_model::{implementations::PublicUserInfo, traits::{IAccountRelated, ILocalObject, IPublicUserInfo}}, functions::{get_many_items_from_command, new_id_safe, render_query_template}, services::{escape_string, get_public_user_info_by_account_id, is_account_already_exists_by_id, row_to_account, row_to_public_user_info, IDbService, SQLiteDbService}}, santa::{data_model::{enums::{PoolState, RoomState}, implementations::Pool, traits::{IMember, IMessage, IPool, IPoolRelated, IRoom}}, services::{create_member, create_message, create_pool, create_room, delete_member_by_id, get_last_messages_by_room_id, get_member_by_id, get_member_by_pool_and_account_ids, get_members_by_pool_id, get_pool_by_id, get_room_by_id, get_rooms_by_user, is_member_already_exists_by_id, is_member_already_exists_by_pool_and_account_ids, is_message_already_exists_by_id, is_pool_already_exists_by_id, is_room_already_exists_by_id, row_to_pool, set_member_room_id, set_pool_state, set_wishlist_by_id}}, AppState};
 
 
 pub async fn user_create_pool(name : &str, description : &str, account_id : &str, min_price : u64, max_price : u64, state : &AppState) -> ApiResponse {
@@ -155,33 +155,12 @@ pub async fn user_delete_pool(pool_id : &str, state : &AppState) -> () {
     
     let esc_pool_id_string = escape_string(pool_id);
     let esc_pool_id = esc_pool_id_string.as_str();
+    let del_list = &vec![esc_pool_id];
 
-    // delete messages
-    let messages_option = get_messages_by_pool_id(esc_pool_id, state).await;
-    if messages_option.is_some() {
-        let messages = messages_option.unwrap();
-        let messages_ids : Vec<&str> = messages.iter().map(|m| {m.id()}).collect();
-        db_service.delete_many_by_prop("messages", "id", messages_ids).await;
-    }
-
-    // delete rooms
-    let rooms_option = get_rooms_by_pool_id(esc_pool_id, state).await;
-    if rooms_option.is_some() {
-        let rooms = rooms_option.unwrap();
-        let rooms_ids : Vec<&str> = rooms.iter().map(|r| {r.id()}).collect();
-        db_service.delete_many_by_prop("rooms", "id", rooms_ids).await;
-    }
-
-    // delete members
-    let members_option = get_members_by_pool_id(esc_pool_id, state).await;
-    if members_option.is_some() {
-        let members = members_option.unwrap();
-        let members_ids : Vec<&str> = members.iter().map(|m| {m.id()}).collect();
-        db_service.delete_many_by_prop("members", "id", members_ids).await;
-    }
-    
-    // delete pool 
-    delete_pool_by_id(esc_pool_id, state).await;
+   db_service.delete_many_by_prop("messages", "pool_id", del_list.to_vec()).await;
+   db_service.delete_many_by_prop("rooms", "pool_id", del_list.to_vec()).await;
+   db_service.delete_many_by_prop("members", "pool_id", del_list.to_vec()).await;
+   db_service.delete_one_by_prop("pools", "id", esc_pool_id).await;
 }
 
 pub async fn delete_pools_if_lifetime(state : &AppState) -> () {
@@ -225,7 +204,42 @@ pub async fn user_get_rooms_by_user(account_id : &str, state : &AppState) -> Api
         return ApiResponse::error_from_str(err_msg.as_str())
     }
     
+    let db_service = SQLiteDbService::new(state);
     let rooms = get_rooms_by_user(account_id, state).await.unwrap_or(vec![]);
+    
+    let pools_ids : &Vec::<&str> = &rooms.iter().map(|r| {r.pool_id()}).collect();
+    let pools = db_service.get_many_by_prop("pools", "id", pools_ids.to_vec(), row_to_pool).await.unwrap_or(vec![]);
+
+    for &pool_id in pools_ids {
+        if !pools.iter().any(|p| {p.id() == pool_id}) {
+            let err_msg = format!("Pool with id \"{pool_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+    }
+    
+
+    let recipient_ids : &Vec::<&str> = &rooms.iter().map(|r| {r.recipient_id()}).collect();
+    
+    let recipients = db_service.get_many_by_prop("accounts", "id", recipient_ids.to_vec(), row_to_account).await.unwrap_or(vec![]);
+
+    let public_user_infos = db_service.get_many_by_prop("public_user_infos", "account_id", recipient_ids.to_vec(), row_to_public_user_info).await.unwrap_or(vec![]);
+
+    for &recipient_id in recipient_ids {
+        if !recipients.iter().any(|r| {r.id() == recipient_id}) {
+            let err_msg = format!("Account with id \"{recipient_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+    }
+
+    for &recipient_id in recipient_ids {
+        if !public_user_infos.iter().any(|p| {p.account_id() == recipient_id}) {
+            let err_msg = format!("Public info for account with id \"{recipient_id}\" not found");
+            return ApiResponse::error_from_str(err_msg.as_str());
+        }
+    }
+
+    
+
     let mut result = Vec::<UserRoomResponse>::new();
     for room in rooms {
         let recipient_id = room.recipient_id();
@@ -236,17 +250,14 @@ pub async fn user_get_rooms_by_user(account_id : &str, state : &AppState) -> Api
             let err_msg = format!("Pool with id \"{pool_id}\" not found");
             return ApiResponse::error_from_str(err_msg.as_str());
         }
-        let pool = pool_opt.unwrap();
+
+        let pool_f : Vec<&Pool> = pools.iter().filter(|p| {p.id() == pool_id}).collect();
+        let pool = pool_f.first().unwrap();
         let pool_name = pool.name();
 
-        let public_recipient_info_opt = get_public_user_info_by_account_id(recipient_id, state).await;
-        if public_recipient_info_opt.is_none() {
-            let err_msg = format!("Public info for account with id \"{recipient_id}\" not found");
-            return ApiResponse::error_from_str(err_msg.as_str());
-        }
-        let public_recipient_info = public_recipient_info_opt.unwrap();
-        let recipient_nickname = public_recipient_info.nickname();
-        
+        let public_user_info_f : Vec<&PublicUserInfo> = public_user_infos.iter().filter(|&p| { p.account_id() == recipient_id }).collect();
+        let public_user_info = public_user_info_f.first().unwrap();
+        let recipient_nickname = public_user_info.nickname();
 
         let recipient_member_opt = get_member_by_pool_and_account_ids(pool_id, recipient_id, state).await;
         if recipient_member_opt.is_none() {

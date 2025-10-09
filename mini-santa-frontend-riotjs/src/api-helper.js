@@ -3,6 +3,8 @@ import AuthHelper from './auth-helper.js';
 const baseUrl = AuthHelper.apiBaseUrl();
 
 const apiBaseUrl = AuthHelper.apiBaseUrl;
+const getAccessToken = AuthHelper.getAccessToken;
+const amIInSystem = AuthHelper.amIInSystem;
 
 function poolState() {
     return {
@@ -113,7 +115,7 @@ async function deletePool(id) {
         headers: headers,
         body: ""
     };
-    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/delete_pool`, params, true);
+    return await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/santa/pools/id/${id}/remove_pool`, params, true);
 }
 
 async function amIPoolOwner(id) {
@@ -233,7 +235,7 @@ async function signOutFromAll() {
     };
     let resp_json = await AuthHelper.sendRequestWithStatusHandler(`${baseUrl}/api/users/sign_out_from_all`, params);
     await AuthHelper.logout();
-    return;
+    return resp_json;
 }
 
-export default { apiBaseUrl, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, amIPoolOwner, getPool, getPools, deletePool, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage, signOutFromAll };
+export default { apiBaseUrl, amIInSystem, getAccessToken, poolState, roomState, getPoolStateFromNum, getRoomStateFromNum, createInviteCode, getInviteCode, getInviteCodes, deleteInviteCode, getId, getNickname, amIAdmin, amIPoolOwner, getPool, getPools, deletePool, getPoolMemberNicknames, createPool, pushPoolState, addToPool, removeUserFromPool, removeCurrentUserFromPool, getRoom, getRooms, getLastMessagesInRoom, sendMessage, signOutFromAll };

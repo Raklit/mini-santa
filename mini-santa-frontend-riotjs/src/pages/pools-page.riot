@@ -46,11 +46,12 @@
     }
 
     async function fetchPoolsData() {
+        console.log(`i am worker ${this.state.timer}`);
         await this.loadPools();
     }
 
     export default {state, props,
-
+        
         async onMounted(props, state) {
             const POOLS_UPDATE_INTERVAL = 5000;
             await this.fetchPoolsData();
@@ -60,6 +61,8 @@
         async onBeforeUnmount(props, state) {
             if (this.state.timer != null) {
                 clearInterval(this.state.timer);
+                this.state.timer = null;
+                this.update();
             }
         },
 

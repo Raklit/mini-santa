@@ -38,7 +38,31 @@
         </div>
     </router>
     <script>
+
+        import { initDomListeners } from '@riotjs/route';
+
         import logo from './assets/img/favicon.ico';
-        export default { logo };
+        
+        let state = {
+            unsubscribe: null
+        };
+
+        let props = null;
+        
+        export default {state, props,
+            
+            async onMounted(props, state) {
+                this.state.unsubscribe = initDomListeners();
+                this.update();
+            },
+
+            async onBeforeUnmount(props, state) {
+                if (this.state.unsubscribe != null) {
+                    this.state.unsubscribe();
+                    this.state.unsubscribe = null;
+                    this.update();
+                }
+            }
+        , logo };
     </script>
 </base-layout>

@@ -30,6 +30,9 @@
 <script lang="js">
     import AuthHelper from '../auth-helper.js';
 
+    let state = {};
+    let props = null;
+
     async function onSignUpClick(e) {
         e.preventDefault();
 
@@ -43,7 +46,7 @@
         return false;
     }
 
-    this.onSignUpClick = onSignUpClick;
+    export default {state, props, onSignUpClick}
 
 </script>
 </signup-page>

@@ -13,8 +13,9 @@
     let state = {
         baseUrl: ApiHelper.apiBaseUrl(),
         pools: new Array()
-
     };
+
+    let props = null;
     
     async function logout() {
         await ApiHelper.signOutFromAll();
@@ -23,7 +24,7 @@
         }, 3000);
     }
 
-    export default {state,
+    export default {state, props,
         async onMounted(props, state) {
             await this.logout()
         },

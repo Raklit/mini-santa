@@ -15,9 +15,9 @@
         "start": "webpack serve --mode development --hot --port 3000"
     },
     "devDependencies": {
-        "@riotjs/compiler": "^9.0.6",
-        "@riotjs/register": "^9.0.0",
-        "@riotjs/webpack-loader": "^9.0.1",
+        "@riotjs/compiler": "^10.0.1",
+        "@riotjs/register": "^10.0.0",
+        "@riotjs/webpack-loader": "^10.0.0",
         "autoprefixer": "^10.4.21",
         "c8": "^8.0.1",
         "chai": "^4.3.10",
@@ -38,12 +38,12 @@
         "webpack-dev-server": "^5.2.2"
     },
     "dependencies": {
-        "@riotjs/hot-reload": "^9.0.1",
-        "@riotjs/lazy": "^9.0.0",
-        "@riotjs/route": "^9.1.2",
-        "minidenticons": "^4.2.1",
+        "@riotjs/hot-reload": "^10.0.0",
+        "@riotjs/lazy": "^10.0.0",
+        "@riotjs/route": "^10.0.0",
         "milligram": "^1.4.1",
+        "minidenticons": "^4.2.1",
         "normalize.css": "^8.0.1",
-        "riot": "^9.1.1"
+        "riot": "^10.0.1"
     }
 }
