@@ -23,9 +23,6 @@
     import AuthHelper from '../auth-helper.js';
     import { router } from "@riotjs/route";
 
-    let state = {};
-    let props = null;
-
     async function onLogInClick(e) {
         e.preventDefault();
 
@@ -35,7 +32,6 @@
         try {
             let resp_json = await AuthHelper.loginByPassword(login, password);
             if (resp_json && resp_json["access_token"]) {
-                this.unmount();
                 router.push("/");
             }
         } catch (error) {
@@ -45,7 +41,7 @@
         return false;
     }
 
-    export default {state, props, onLogInClick};
+    export default { onLogInClick };
 
 </script>
 </login-page>

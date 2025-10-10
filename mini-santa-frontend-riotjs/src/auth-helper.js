@@ -25,16 +25,23 @@ async function loginByPassword(login, password) {
     };
 
     const response = await fetch(`${baseUrl}/oauth/token`, params);
-    const resp_json = await response.json();
-
-    if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { return; }
-    
-    let expires = new Date();
-    expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
-    localStorage.setItem('refresh_token', resp_json["refresh_token"]);
-    localStorage.setItem('access_token', resp_json["access_token"]);
-    localStorage.setItem('expires', expires);
-    return resp_json;
+    try {
+        const resp_json = await response.json();
+        if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { 
+            InfoHandler.triggerInfo("Wrong login or password");
+            return null; 
+        }
+        
+        let expires = new Date();
+        expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+        localStorage.setItem('refresh_token', resp_json["refresh_token"]);
+        localStorage.setItem('access_token', resp_json["access_token"]);
+        localStorage.setItem('expires', expires);
+        return resp_json;
+    } catch {
+        InfoHandler.triggerInfo("Wrong login or password");
+        return null;
+    }
 }
 
 
@@ -56,15 +63,26 @@ async function refreshTokens() {
     };
 
     const response = await fetch(`${baseUrl}/oauth/token`, params);
-    const resp_json = await response.json();
-    
-    if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { return; }
-    
-    let expires = new Date();
-    expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
-    localStorage.setItem('refresh_token', resp_json["refresh_token"]);
-    localStorage.setItem('access_token', resp_json["access_token"]);
-    localStorage.setItem('expires', expires);
+    try {
+        const resp_json = await response.json();
+        
+        if (!resp_json || !resp_json["access_token"] || !resp_json["refresh_token"] || !resp_json["expires_in"]) { 
+            await logout()
+            InfoHandler.triggerInfo("Please login again");
+            router.push("/login");
+            return; 
+        }
+        
+        let expires = new Date();
+        expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+        localStorage.setItem('refresh_token', resp_json["refresh_token"]);
+        localStorage.setItem('access_token', resp_json["access_token"]);
+        localStorage.setItem('expires', expires);
+    } catch {
+        await logout()
+        InfoHandler.triggerInfo("Please login again");
+        router.push("/login"); 
+    }
 }
 
 async function logout() {
@@ -85,7 +103,7 @@ async function signup(login, password, confirmPassword, nickname, email, inviteC
     const headers = new Map();
     headers.set('Content-Type', 'application/json');
     let params = {method: "POST", headers: headers, body: JSON.stringify(body)};
-    return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params, false, false);
+    return await sendRequestWithStatusHandler(`${baseUrl}/api/sign_up`, params, true, false);
 }
 
 function amIInSystem() {
@@ -135,7 +153,7 @@ async function sendRequestWithStatusHandler(url, params = {method: 'GET', header
     try {
         const response = await sendRequest(url, params, needAuth);
         const resp_json = await response.json();
-        if (showResultOnOk || resp_json.status != 'OK') {
+        if (showResultOnOk || resp_json?.status != 'OK') {
             InfoHandler.triggerInfo(JSON.stringify(resp_json));
         }
         return resp_json;

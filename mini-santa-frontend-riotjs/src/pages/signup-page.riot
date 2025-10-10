@@ -29,9 +29,7 @@
 </div>
 <script lang="js">
     import AuthHelper from '../auth-helper.js';
-
-    let state = {};
-    let props = null;
+    import { router } from "@riotjs/route";
 
     async function onSignUpClick(e) {
         e.preventDefault();
@@ -42,11 +40,14 @@
         const email = document.getElementById("email").value;
         const nickname = document.getElementById("nickname").value;
         const inviteCode = document.getElementById("invite-code").value;
-        await AuthHelper.signup(login, password, confirmPassword, nickname, email, inviteCode);
+        let resp_json = await AuthHelper.signup(login, password, confirmPassword, nickname, email, inviteCode);
+        if (resp_json?.status == 'OK') {
+            router.push("/login");
+        }
         return false;
     }
 
-    export default {state, props, onSignUpClick}
+    export default { onSignUpClick }
 
 </script>
 </signup-page>

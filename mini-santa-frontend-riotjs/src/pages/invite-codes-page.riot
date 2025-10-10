@@ -58,16 +58,21 @@
         await ApiHelper.deleteInviteCode(id);
     }
 
+    async function loadData() {
+        const INVITES_UPDATE_INTERVAL = 5000;
+        this.fetchInvitesData();
+        if (this.state.am_i_admin === true && this.state.timer == null) {
+            this.state.timer = setInterval(() => {this.fetchInvitesData();}, INVITES_UPDATE_INTERVAL);
+        }
+    }
+
     export default {state, props,
         
-        async onMounted(props, state) {
-            const INVITES_UPDATE_INTERVAL = 5000;
-            await this.fetchInvitesData();
-            if (this.state.am_i_admin == false) { return; }
-            this.state.timer = setInterval(async () => {await this.fetchInvitesData();}, INVITES_UPDATE_INTERVAL);
+        onMounted(props, state) {
+           this.loadData();
         },
 
-        async onBeforeUnmount(props, state) {
+        onBeforeUnmount(props, state) {
             if (this.state.timer != null) {
                 clearInterval(this.state.timer);
                 this.state.timer = null;
@@ -75,7 +80,7 @@
             }
         },
 
-        loadInvites, fetchInvitesData, deleteInviteCode
+        loadInvites, fetchInvitesData, deleteInviteCode, loadData
     };
 </script>
 </invite-codes-page>

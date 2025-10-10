@@ -25,18 +25,19 @@
             <p>Access denied. <a href="/pools/id/{props.object_id}">Back to pool details</a>.</p>
         </div>
     </div>
-    <div if={isNotEnded() && canRulePool()} class="row">
+    <div if={isNotEnded() && canRulePool() && !isPoolDeleted()} class="row">
         <div class="column">
             <p>Pool is not ended yet. <a href="/pools/id/{props.object_id}">Back to pool details</a>.</p>
         </div>
     </div>
 </div>
 <script lang="js">
-    import ApiHelper from '../api-helper.js';
+import ApiHelper from '../api-helper.js';
 
 let state = {
     pool: null,
     members: new Array(),
+    is_pool_deleted: false,
     timer: null
 };
 
@@ -52,6 +53,10 @@ function canRulePool() {
 
 function isNotEnded() {
     return (this.state?.pool?.pool_state ?? -1) != 4;
+}
+
+function isPoolDeleted() {
+    return this.state?.is_pool_deleted ?? false
 }
 
 
@@ -71,12 +76,21 @@ async function amIPoolOwner(id) {
 }
 
 async function fetchPoolDetailsData() {
+    if (this.state?.is_pool_deleted) { return; }
     await this.getPool(this.props.object_id);
 }
 
 async function deletePool() {
     try {
-        await ApiHelper.deletePool(this.props.object_id);
+        let resp_json = await ApiHelper.deletePool(this.props.object_id);
+        if (resp_json?.status == 'OK') {
+            if (this.state.timer != null) {
+            clearInterval(this.state.timer);
+            this.state.timer = null;
+            this.state.is_pool_deleted = null;
+            this.update();
+        }
+        }
     } catch (error) {
         console.log('Error while request: ', error.message);
     }
@@ -96,15 +110,15 @@ async function onDeletePoolClick(e) {
 
 export default {state, props,
 
-    async onMounted(props, state) {
+    onMounted(props, state) {
         const POOL_DETAILS_UPDATE_INTERVAL = 5000;
-        await this.fetchPoolDetailsData();
-        if (this.isNotEnded()) {
-            this.state.timer = setInterval(async () => {await this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+        this.fetchPoolDetailsData();
+        if (this.state.timer == null && this.isNotEnded()) {
+            this.state.timer = setInterval(() => {this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
         }
     },
 
-    async onBeforeUnmount(props, state) {
+    onBeforeUnmount(props, state) {
         if (this.state.timer != null) {
             clearInterval(this.state.timer);
             this.state.timer = null;
@@ -112,7 +126,7 @@ export default {state, props,
         }
     },
 
-    isPoolOpen, canRulePool, isNotEnded, getPool, amIPoolOwner, fetchPoolDetailsData, deletePool, onDeletePoolClick
+    isPoolOpen, canRulePool, isNotEnded, isPoolDeleted, getPool, amIPoolOwner, fetchPoolDetailsData, deletePool, onDeletePoolClick
 };
 </script>
 </delete-pool-page>

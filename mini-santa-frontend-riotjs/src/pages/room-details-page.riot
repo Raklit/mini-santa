@@ -147,16 +147,21 @@ async function amIRecipient() {
     return my_id == recipient_id;
 }
 
+async function loadData() {
+    const CHAT_UPDATE_INTERVAL = 5000;
+    this.fetchRoomData();
+    if (this.state.timer == null && this.isNotEnded()) {
+        this.state.timer = setInterval(() => {this.fetchRoomData();}, CHAT_UPDATE_INTERVAL);
+    }
+}
+
 export default {state, props,
-    async onMounted(props, state) {
-        const CHAT_UPDATE_INTERVAL = 5000;
-        await this.fetchRoomData();
-        if (this.isNotEnded()) {
-            this.state.timer = setInterval(async () => {await this.fetchRoomData();}, CHAT_UPDATE_INTERVAL);
-        }
+    
+    onMounted(props, state) {
+       this.loadData();
     },
 
-    async onBeforeUnmount(props, state) {
+    onBeforeUnmount(props, state) {
         if (this.state.timer != null) {
             clearInterval(this.state.timer);
             this.state.timer = null;
@@ -164,7 +169,7 @@ export default {state, props,
         }
     },
 
-    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded, santaAvatar, recipientAvatar, amIRecipient
+    getRoom, getLastMessagesInRoom, onPushStateClick, onSendButtonClick, fetchRoomData, isNotEnded, santaAvatar, recipientAvatar, amIRecipient, loadData
 };
 </script>
 </room-details-page>

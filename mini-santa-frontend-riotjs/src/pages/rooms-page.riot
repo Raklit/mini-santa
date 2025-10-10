@@ -54,15 +54,21 @@
         await this.loadRooms();
     }
 
+    async function loadData() {
+        const ROOMS_UPDATE_INTERVAL = 5000;
+        this.fetchRoomsData();
+        if (this.state.timer == null) {
+            this.state.timer = setInterval(() => {this.fetchRoomsData();}, ROOMS_UPDATE_INTERVAL);
+        }
+    }
+
     export default {state, props,
 
-        async onMounted(props, state) {
-            const ROOMS_UPDATE_INTERVAL = 5000;
-            await this.fetchRoomsData();
-            this.state.timer = setInterval(async () => {await this.fetchRoomsData();}, ROOMS_UPDATE_INTERVAL);
+        onMounted(props, state) {
+            this.loadData();
         },
 
-        async onBeforeUnmount(props, state) {
+        onBeforeUnmount(props, state) {
             if (this.state.timer != null) {
                 clearInterval(this.state.timer);
                 this.state.timer = null;
@@ -70,7 +76,7 @@
             }
         },
 
-        loadRooms, getRoomStateFromNum, fetchRoomsData, addAmIRecipientField
+        loadRooms, getRoomStateFromNum, fetchRoomsData, addAmIRecipientField, loadData
     }
 </script>
 </rooms-page>

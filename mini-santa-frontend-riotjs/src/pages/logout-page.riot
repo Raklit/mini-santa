@@ -2,7 +2,7 @@
 <div class="container padding-0">
     <div class="row">
         <div class="column">
-            <p>Your successfully log out</p>
+            <p>Your successfully log out from all sessions</p>
         </div>
     </div>
 </div>
@@ -11,24 +11,38 @@
     import { router } from "@riotjs/route";
 
     let state = {
-        baseUrl: ApiHelper.apiBaseUrl(),
-        pools: new Array()
+        timer: null
     };
 
     let props = null;
-    
+
     async function logout() {
         await ApiHelper.signOutFromAll();
-        setTimeout(() => {
-            router.push("/login");
-        }, 3000);
+        const TIME_BEFORE_LOGOUT = 3000;
+        if (this.state.timer == null) {
+            this.state.timer = setTimeout(() => {
+                router.push("/login");
+            }, TIME_BEFORE_LOGOUT);
+            this.update();
+        }
     }
 
     export default {state, props,
-        async onMounted(props, state) {
-            await this.logout()
+
+        onMounted(props, state) {
+            this.logout();
         },
+
+        onBeforeUnmount(props, state) {
+            if (this.state.timer != null) {
+                clearTimeout(this.state.timer);
+                this.state.timer = null;
+                this.update();
+            }
+        },
+
         logout
+
     }
 </script>
 </logout-page>

@@ -35,6 +35,18 @@
 
     let props = null;
 
+    async function loadData() {
+        try {
+            let resp_json = await ApiHelper.amIAdmin();
+            if (resp_json.status == 'OK') {
+                this.state.am_i_admin = resp_json.body;
+                this.update();
+            }
+        } catch (error) {
+            console.error(error.message);
+        }
+    }
+
     async function onCreateInviteCodeClick(e) {
         e.preventDefault();
 
@@ -51,18 +63,12 @@
     }
 
     export default {state, props,
-            async onMounted() {
-                try {
-                    let resp_json = await ApiHelper.amIAdmin();
-                    if (resp_json.status == 'OK') {
-                        this.state.am_i_admin = resp_json.body;
-                        this.update();
-                    }
-                } catch (error) {
-                        console.error(error.message);
-                } 
-            },
-        onCreateInviteCodeClick 
+
+        onMounted() {
+            this.loadData();
+        },
+
+        loadData, onCreateInviteCodeClick 
     };
 
 </script>

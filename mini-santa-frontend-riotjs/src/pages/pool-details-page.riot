@@ -117,17 +117,21 @@ async function fetchPoolDetailsData() {
     await this.getPoolMemberNicknames(this.props.object_id);
 }
 
+async function loadData() {
+    const POOL_DETAILS_UPDATE_INTERVAL = 5000;
+    this.fetchPoolDetailsData();
+    if (this.state.timer == null && this.isNotEnded()) {
+        this.state.timer = setInterval(async () => {this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+    }
+}
+
 export default {state, props,
 
-    async onMounted(props, state) {
-        const POOL_DETAILS_UPDATE_INTERVAL = 5000;
-        await this.fetchPoolDetailsData();
-        if (this.isNotEnded()) {
-            this.state.timer = setInterval(async () => {await this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
-        }
+    onMounted(props, state) {
+        this.loadData();
     },
 
-    async onBeforeUnmount(props, state) {
+    onBeforeUnmount(props, state) {
         if (this.state.timer != null) {
             clearInterval(this.state.timer);
             this.state.timer = null;
@@ -135,7 +139,7 @@ export default {state, props,
         }
     },
 
-    isPoolOpen, canRulePool, isNotEnded, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool, amIPoolOwner, fetchPoolDetailsData
+    isPoolOpen, canRulePool, isNotEnded, getPool, getPoolMemberNicknames, onPushStateClick, removeUserFromPool, removeCurrentUserFromPool, amIPoolOwner, fetchPoolDetailsData, loadData
 };
 </script>
 </pool-details-page>

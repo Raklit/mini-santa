@@ -43,22 +43,29 @@
         } catch (error) {
             console.log('Error while request: ', error.message);
         }
+        this.update();
     }
 
     async function fetchPoolsData() {
-        console.log(`i am worker ${this.state.timer}`);
         await this.loadPools();
+        this.update();
+    }
+
+    async function loadData() {
+        const POOLS_UPDATE_INTERVAL = 5000;
+        this.fetchPoolsData();
+        if (this.state.timer == null) {
+            this.state.timer = setInterval(() => {this.fetchPoolsData();}, POOLS_UPDATE_INTERVAL);
+        }
     }
 
     export default {state, props,
-        
-        async onMounted(props, state) {
-            const POOLS_UPDATE_INTERVAL = 5000;
-            await this.fetchPoolsData();
-            this.state.timer = setInterval(async () => {await this.fetchPoolsData();}, POOLS_UPDATE_INTERVAL);
+
+        onMounted(props, state) {
+            this.loadData();
         },
 
-        async onBeforeUnmount(props, state) {
+        onUnmounted(props, state) {
             if (this.state.timer != null) {
                 clearInterval(this.state.timer);
                 this.state.timer = null;
@@ -66,7 +73,7 @@
             }
         },
 
-        loadPools, getPoolStateFromNum, fetchPoolsData
+        loadPools, getPoolStateFromNum, fetchPoolsData, loadData
     }
 </script>
 </pools-page>

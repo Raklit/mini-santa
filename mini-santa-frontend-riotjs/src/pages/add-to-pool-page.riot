@@ -1,6 +1,6 @@
 <login-page>
 <div class="container padding-0">
-    <div class="row">
+    <div if={isPoolOpen()} class="row">
         <div class="column">
             <form onsubmit="{onAddToPoolClick}">
                 <fieldset>
@@ -11,6 +11,11 @@
             </form>
         </div>
     </div>
+    <div if={!isPoolOpen()} class="row">
+        <div class="column">
+            <p>Pool doesn't open. New members can join to open pools only</p>
+        </div>
+    </div>
     <div class="row">
         <div class="column">
             <p><a href="/pools/id/{props.object_id}">To pool details</a></p>
@@ -18,24 +23,83 @@
     </div>
 </div>
 <script lang="js">
-    import ApiHelper from '../api-helper.js';
+import ApiHelper from '../api-helper.js';
 
-    async function onAddToPoolClick(e) {
-        e.preventDefault();
+let state = {
+    pool: null,
+    members: new Array(),
+    timer: null
+};
 
-        const wishlist = document.getElementById("wishlist").value ?? "";
-        const pool_id = this.props.object_id;
+let props = null;
 
-        try {
-            await ApiHelper.addToPool(pool_id, wishlist);
-        } catch (error) {
-            console.log('Error while request: ', error.message);
-        }
+function isPoolOpen() {
+    return (this.state?.pool?.pool_state ?? -1) == 1;
+}
 
-        return false;
+function canRulePool() {
+    return (this.state?.pool?.am_i_pool_owner ?? false) === true
+}
+
+function isNotEnded() {
+    return (this.state?.pool?.pool_state ?? -1) != 4;
+}
+
+
+async function getPool(id) {
+    let resp_json = await ApiHelper.getPool(id);
+    if (resp_json.status == 'OK') {
+        this.state.pool = resp_json.body;
+        this.state.pool.pool_state_desc = ApiHelper.getPoolStateFromNum(this.state.pool.pool_state);
+        this.state.pool.am_i_pool_owner = await this.amIPoolOwner(id);
+        this.update();
+    }
+}
+
+async function amIPoolOwner(id) {
+        let resp_json = await ApiHelper.amIPoolOwner(id) 
+        return resp_json && resp_json.status &&  resp_json.status == 'OK' && resp_json.body === true
+}
+
+async function fetchPoolDetailsData() {
+    await this.getPool(this.props.object_id);
+}
+
+async function onAddToPoolClick(e) {
+    e.preventDefault();
+
+    const wishlist = document.getElementById("wishlist").value ?? "";
+    const pool_id = this.props.object_id;
+
+    try {
+        await ApiHelper.addToPool(pool_id, wishlist);
+    } catch (error) {
+        console.log('Error while request: ', error.message);
     }
 
-    export default { onAddToPoolClick };
+    return false;
+}
+
+export default {state, props,
+
+    onMounted(props, state) {
+        const POOL_DETAILS_UPDATE_INTERVAL = 5000;
+        this.fetchPoolDetailsData();
+        if (this.state.timer == null && this.isNotEnded()) {
+            this.state.timer = setInterval(() => {this.fetchPoolDetailsData();}, POOL_DETAILS_UPDATE_INTERVAL);
+        }
+    },
+
+    onBeforeUnmount(props, state) {
+        if (this.state.timer != null) {
+            clearInterval(this.state.timer);
+            this.state.timer = null;
+            this.update();
+        }
+    },
+
+    isPoolOpen, canRulePool, isNotEnded, getPool, amIPoolOwner, fetchPoolDetailsData, onAddToPoolClick
+};
 
 </script>
 </login-page>
