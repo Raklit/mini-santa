@@ -1,6 +1,2 @@
 #! bin/bash
-if ! [ -z "$DONATION_LINK" ]; then
-    exit 0;
-else
-    exit 1;
-fi
+curl -sS -f --max-time 5 http://localhost:8080/api/hello || exit 1 

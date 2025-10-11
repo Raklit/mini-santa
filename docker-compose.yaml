@@ -4,11 +4,11 @@ services:
     image: mini-santa:latest
     restart: "unless-stopped"
     healthcheck:
-      test: ["CMD", "sh", "/executables/bash-scripts/healthcheck.sh"]
+      test: ["CMD-SHELL", "sh", "/executables/bash-scripts/healthcheck.sh"]
       interval: 5s
       timeout: 5s
       retries: 5
-      start_period: 3s
+      start_period: 5s
     env_file:
       - ./.env/.basic_info
       - ./.env/.admin_info
@@ -16,11 +16,30 @@ services:
       - engine-db:/executables/db:rw
     networks:
       - internal
+  webserver:
+    container_name: webserver
+    image: caddy:2.10.2-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    depends_on:
+      engine:
+        condition: service_healthy
+    environment:
+      CADDY_TELEMETRY: "off"
+    volumes:
+      - ./caddy_conf:/etc/caddy
+      - caddy_data:/data:rw
+      - caddy_config:/config:rw
+    networks:
+      - internal
       - external
     ports:
-      - 8080:8080
-      - 80:80
-
+      - "80:80"
+      - "443:443"
 networks:
   external:
     driver: bridge
@@ -29,3 +48,5 @@ networks:
 
 volumes:
   engine-db: null
+  caddy_data: null
+  caddy_config: null

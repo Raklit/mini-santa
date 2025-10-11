@@ -2,7 +2,7 @@ import InfoHandler from "./info-handler.js";
 import { router } from "@riotjs/route";
 
 function apiBaseUrl() {
-    return "http://localhost:8080";
+    return "";
 }
 
 const baseUrl = apiBaseUrl();

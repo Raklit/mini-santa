@@ -12,7 +12,7 @@ DOMAIN_EMAIL: ""
 DONATION_LINK: ""
 CONTACT_EMAIL: ""
 
-Fill data like your want, but donation link required (doesn't checked 123 is enough).
+Fill data like your want or left it empty (doesn't use, but need for future updates)
 
 .admin_info content example
 

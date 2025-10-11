@@ -19,7 +19,7 @@ RUN cd /project-code && cargo build --target x86_64-unknown-linux-gnu -r --offli
 
 FROM debian:bookworm-slim AS server-preready
 
-RUN apt-get update -y && apt-get install logrotate gettext-base -y
+RUN apt-get update -y && apt-get install logrotate gettext-base curl -y
 
 FROM server-preready AS server-ready
 
