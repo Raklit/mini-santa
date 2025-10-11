@@ -124,6 +124,14 @@ pub async fn user_pool_state_push(pool_id : &str, state : &AppState) -> ApiRespo
     let pool = pool_option.unwrap();
     let pool_state = pool.state();
 
+    if PoolState::Open == pool_state {
+        let members = get_members_by_pool_id(pool_id, state).await.unwrap_or(vec![]);
+        if members.is_empty() {
+            let err_msg = format!("There are no members in the pool with id \"{pool_id}\". At least one is required to start. You can add yourself to the pool as a member");
+            return ApiResponse::new(ApiResponseStatus::ERROR, serde_json::to_value(err_msg).unwrap()); 
+        }
+    }
+
     if PoolState::Pooling == pool_state {
         let err_msg = format!("Pool with id \"{pool_id}\" cannot be pushed because it is busy creating rooms. Please wait.");
         return ApiResponse::error_from_str(err_msg.as_str());
