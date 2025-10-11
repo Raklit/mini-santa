@@ -36,7 +36,7 @@
          try {
             if (this.state.am_i_admin === false) { return; }
             let resp_json = await ApiHelper.getInviteCodes();
-            if (resp_json.status == 'OK') {
+            if (resp_json?.status == 'OK') {
                 this.state.invites = resp_json.body;
                 this.update();
             }
@@ -47,7 +47,7 @@
 
     async function fetchInvitesData() {
         let resp_json = await ApiHelper.amIAdmin();
-        if (resp_json.status == 'OK') {
+        if (resp_json?.status == 'OK') {
             this.state.am_i_admin = resp_json.body;
             this.update();
         }

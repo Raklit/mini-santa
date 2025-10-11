@@ -48,7 +48,7 @@ function isNotEnded() {
 
 async function getPool(id) {
     let resp_json = await ApiHelper.getPool(id);
-    if (resp_json.status == 'OK') {
+    if (resp_json?.status == 'OK') {
         this.state.pool = resp_json.body;
         this.state.pool.pool_state_desc = ApiHelper.getPoolStateFromNum(this.state.pool.pool_state);
         this.state.pool.am_i_pool_owner = await this.amIPoolOwner(id);
@@ -58,7 +58,7 @@ async function getPool(id) {
 
 async function amIPoolOwner(id) {
         let resp_json = await ApiHelper.amIPoolOwner(id) 
-        return resp_json && resp_json.status &&  resp_json.status == 'OK' && resp_json.body === true
+        return resp_json?.status == 'OK' && resp_json.body === true
 }
 
 async function fetchPoolDetailsData() {

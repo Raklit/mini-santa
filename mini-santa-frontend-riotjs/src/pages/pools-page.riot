@@ -36,7 +36,7 @@
     async function loadPools() {
          try {
             const resp_json = await ApiHelper.getPools();
-            if (resp_json.status == 'OK') {
+            if (resp_json?.status == 'OK') {
                 this.state.pools = resp_json.body;
                 this.update();
             }

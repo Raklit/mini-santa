@@ -93,7 +93,7 @@ function isNotEnded() {
 
 async function getRoom(id) {
     let resp_json = await ApiHelper.getRoom(id);
-    if (resp_json.status == 'OK') {
+    if (resp_json?.status == 'OK') {
         this.state.room = resp_json.body;
         this.state.room.room_state_desc = ApiHelper.getRoomStateFromNum(this.state.room.room_state);
         this.state.room.recipient_avatar = this.recipientAvatar();
@@ -104,7 +104,7 @@ async function getRoom(id) {
 
 async function getLastMessagesInRoom(id) {
     let resp_json = await ApiHelper.getLastMessagesInRoom(id);
-    if (resp_json.status == 'OK') {
+    if (resp_json?.status == 'OK') {
         this.state.messages = resp_json.body;
         this.update();
     }
@@ -121,7 +121,7 @@ async function onSendButtonClick() {
     if (text_content == null || text_content === "") { return; }
 
     let resp_json = await ApiHelper.sendMessage(this.props.object_id, text_content);
-    if (resp_json.status == 'OK') {
+    if (resp_json?.status == 'OK') {
         input_window.value = '';
         await this.fetchRoomData();
         let chat = document.getElementById("message-list-block");
@@ -140,7 +140,7 @@ function recipientAvatar() {
 
 async function amIRecipient() {
     let resp_json = await ApiHelper.getId();
-    let not_valid = !resp_json || !resp_json.status || resp_json.status != 'OK';
+    let not_valid = resp_json?.status != 'OK';
     if (not_valid) { return null; }
     let my_id = resp_json.body;
     let recipient_id = this.state?.room?.recipient_id ?? "";

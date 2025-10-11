@@ -29,7 +29,7 @@
     async function loadRooms() {
          try {
             const resp_json = await ApiHelper.getRooms();
-            if (resp_json.status == 'OK') {
+            if (resp_json?.status == 'OK') {
                 this.state.rooms = resp_json.body;
                 await this.addAmIRecipientField();
                 this.update();
@@ -41,7 +41,7 @@
 
     async function addAmIRecipientField() {
         const resp_json = await ApiHelper.getId();
-        if (!resp_json || !resp_json.status || resp_json.status != 'OK') { return; }
+        if (resp_json?.status != 'OK') { return; }
         const my_id = resp_json.body;
         const arr = this.state?.rooms ?? new Array();
         const n = arr.length;

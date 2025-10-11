@@ -38,7 +38,7 @@
     async function loadData() {
         try {
             let resp_json = await ApiHelper.amIAdmin();
-            if (resp_json.status == 'OK') {
+            if (resp_json?.status == 'OK') {
                 this.state.am_i_admin = resp_json.body;
                 this.update();
             }

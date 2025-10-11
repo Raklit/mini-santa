@@ -14,13 +14,13 @@
         async function loadData() {
             try {
                 let resp_json = await ApiHelper.getNickname();
-                if (resp_json.status == 'OK') {
+                if (resp_json?.status == 'OK') {
                     let nickname = resp_json.body;
                     this.state.title = `user with nickname \"${nickname}\"`;
                     this.update();
                 }
                 resp_json = await ApiHelper.amIAdmin();
-                if (resp_json.status == 'OK') {
+                if (resp_json?.status == 'OK') {
                     this.state.am_i_admin = resp_json.body;
                     this.update();
                 }
