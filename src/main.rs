@@ -70,13 +70,19 @@ pub fn no_auth_api_router() -> Router<AppState> {
 pub fn ui_router() -> Router<AppState> {
     return Router::new()
         .route("/", get(spa_handler))
-        .route("/sign_up", get(spa_handler))
         .route("/login", get(spa_handler))
-        .route("/profile", get(spa_handler))
-        .route("/pools", get(spa_handler))
-        .route("/chats", get(spa_handler))
         .route("/logout", get(spa_handler))
-        .route("/create_pool", get(spa_handler));
+        .route("/sign_up", get(spa_handler))
+        .route("/invite_codes", get(spa_handler))
+        .route("/create_invite_code", get(spa_handler))
+        .route("/pools", get(spa_handler))
+        .route("/pools/id/{id}", get(spa_handler))
+        .route("/pools/id/{id}/add", get(spa_handler))
+        .route("/create_pool", get(spa_handler))
+        .route("/pools/id/{id}/delete_pool", get(spa_handler))
+        .route("/chats", get(spa_handler))
+        .route("/chats/id/{id}", get(spa_handler))
+        .route("/profile", get(spa_handler))
 }
 
 pub fn need_auth_api_router(state : AppState) -> Router<AppState> {
