@@ -1,1 +1,1 @@
-DELETE FROM auth_codes WHERE DATETIME(creation_date, '+{{lifetime}} seconds') < '{{now}}';
+DELETE FROM auth_codes WHERE DATETIME(creation_date, '+{{lifetime}} seconds') < DATETIME('{{now}}');

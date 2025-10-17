@@ -1,1 +1,1 @@
-DELETE FROM account_sessions WHERE DATETIME(refresh_token_creation_date, '+{{lifetime}} seconds') < '{{now}}';
+DELETE FROM account_sessions WHERE DATETIME(refresh_token_creation_date, '+{{lifetime}} seconds') < DATETIME('{{now}}');

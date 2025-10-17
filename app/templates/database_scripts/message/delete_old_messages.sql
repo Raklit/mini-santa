@@ -12,4 +12,4 @@ WITH ranked AS (
 DELETE FROM messages
 WHERE id IN (
   SELECT id FROM ranked WHERE rn > '{{limit}}'
-) OR DATETIME(creation_date, '+{{lifetime}} seconds') < '{{now}}';
+) OR DATETIME(creation_date, '+{{lifetime}} seconds') < DATETIME('{{now}}');

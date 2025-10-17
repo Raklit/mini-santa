@@ -1,1 +1,1 @@
-SELECT * FROM pools AS p WHERE DATETIME(p.creation_date, '+' || p.lifetime || ' seconds') < '{{now}}' OR DATETIME(p.creation_date, '+{{max_lifetime}} seconds') < '{{now}}';
+SELECT * FROM pools AS p WHERE DATETIME(p.creation_date, '+' || p.lifetime || ' seconds') < DATETIME('{{now}}') OR DATETIME(p.creation_date, '+{{max_lifetime}} seconds') < DATETIME('{{now}}');
