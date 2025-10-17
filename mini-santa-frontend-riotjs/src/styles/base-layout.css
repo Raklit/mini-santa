@@ -8,6 +8,11 @@
     vertical-align: middle;
 }
 
+#logo-img-block img {
+    width: auto;
+    height: 7rem;
+}
+
 #vertical-menu-block li {
     display: inline-block;
     margin-right: 3rem;
