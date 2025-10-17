@@ -32,11 +32,11 @@ async function loginByPassword(login, password) {
             return null; 
         }
         
-        let expires = new Date();
-        expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+        let now = new Date();
+        let expires_secs = Math.floor(now.getTime() / 1000) + parseInt(resp_json["expires_in"], 10);
         localStorage.setItem('refresh_token', resp_json["refresh_token"]);
         localStorage.setItem('access_token', resp_json["access_token"]);
-        localStorage.setItem('expires', expires);
+        localStorage.setItem('expires', expires_secs);
         return resp_json;
     } catch {
         InfoHandler.triggerInfo("Wrong login or password");
@@ -73,11 +73,11 @@ async function refreshTokens() {
             return; 
         }
         
-        let expires = new Date();
-        expires.setSeconds(expires.getSeconds() + resp_json["expires_in"]);
+        let now = new Date();
+        let expires_secs = Math.floor(now.getTime() / 1000) + parseInt(resp_json["expires_in"], 10);
         localStorage.setItem('refresh_token', resp_json["refresh_token"]);
         localStorage.setItem('access_token', resp_json["access_token"]);
-        localStorage.setItem('expires', expires);
+        localStorage.setItem('expires', expires_secs);
     } catch {
         await logout()
         InfoHandler.triggerInfo("Please login again");
@@ -120,7 +120,7 @@ async function getAccessToken() {
         return null;
     }
     const now = new Date();
-    const expires = localStorage.getItem('expires');
+    const expires = new Date(parseInt(localStorage.getItem('expires'), 10) * 1000);
     if (expires <= now) {
         await refreshTokens();
     }
