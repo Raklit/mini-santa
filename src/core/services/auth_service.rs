@@ -242,7 +242,7 @@ async fn is_password_common(password : &str, state : &AppState) -> bool {
 }
 
 async fn is_password_valid(password : &str, state : &AppState) -> SignUpStatus {
-    const PASSWORD_MIN_LENGTH : usize = 12;
+    const PASSWORD_MIN_LENGTH : usize = 6;
     const PASSWORD_MAX_LENGTH : usize = 128;
     
     if password.is_empty() { return SignUpStatus::PasswordIsEmpty; }

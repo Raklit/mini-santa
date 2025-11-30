@@ -23,7 +23,7 @@ ADMIN_NICKNAME: "BigBoss"
 ADMIN_EMAIL: "admin@test.ru"
 
 Change value like your want. Only latin and cyrillic letters allowed in nicknames.
-Password minimum length is 12 chars.
+Password minimum length is 6 chars.
 Email available in data model, but verify doesn't implemented yet.
 Phone is available in data model too, but doesn't implemented yet.
 
