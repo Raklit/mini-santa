@@ -6,7 +6,7 @@
                 <div if={state?.room?.am_i_recipient === null} class="room-header-avatar-block">ERROR</div>
                 <div if={state?.room?.am_i_recipient === false} class="room-header-avatar-block recipient-header-avatar-block"><img if={state?.room?.recipient_avatar} src="{state?.room?.recipient_avatar ?? ""}" alt="abstract avatar special for {state?.room?.recipient_nickname ?? "nobody"}"></div>
                 <div if={state?.room?.am_i_recipient === true} class="room-header-avatar-block santa-header-avatar-block"><img src="{santaAvatar}" alt="santa avatar"></div>
-                <div class="room-header-buttons-block"><button class="button" if={isNotEnded()} onclick={onPushStateClick}>Push state</button></div>
+                <div class="room-header-buttons-block"><button class="button" if={false}  onclick={onPushStateClick}>Push state</button></div>
             </div>
         </div>
     </div>

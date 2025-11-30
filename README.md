@@ -23,9 +23,9 @@ ADMIN_NICKNAME: "BigBoss"
 ADMIN_EMAIL: "admin@test.ru"
 
 Change value like your want. Only latin and cyrillic letters allowed in nicknames.
-Password minimum length is 12 chars
-Email doesn't checked. Just write something like test email
-In data model phone is available too, but doesn't field and check yet
+Password minimum length is 12 chars.
+Email available in data model, but verify doesn't implemented yet.
+Phone is available in data model too, but doesn't implemented yet.
 
 
 PLAN:

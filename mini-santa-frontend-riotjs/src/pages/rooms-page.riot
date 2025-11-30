@@ -6,7 +6,7 @@
             <div class="container">
                 <div each={item in state.rooms} class="row pool-row-block">
                     <div class="column">
-                        <span><a href="{state.baseUrl}/chats/id/{item.id}">"{item.pool_name}"</a><span>&nbsp;</span>{item.am_i_recipient ? "your Santa is here" : `recipient \"${item.recipient_nickname}\"`}<span>&nbsp;</span>(room state {getRoomStateFromNum(item.room_state)})</span>
+                        <span><a href="{state.baseUrl}/chats/id/{item.id}">"{item.pool_name}"</a><span>&nbsp;</span>{item.am_i_recipient ? "your Santa is here" : `recipient \"${item.recipient_nickname}\"`}</span>
                     </div>
                 </div>
             </div>

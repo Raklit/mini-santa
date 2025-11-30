@@ -10,8 +10,6 @@
                     <input type="password" id="password" name="password" placeholder="Enter your password">
                     <label for="confirm-password" class="label-inline">Confirm password</label>
                     <input type="password" id="confirm-password" name="confirm_password" placeholder="Enter your password again">
-                    <label for="email" class="label-inline">Email</label>
-                    <input type="email" id="email" name="email" placeholder="Enter your email">
                     <label for="nickname" class="label-inline">Nickname</label>
                     <input type="text" id="nickname" name="nickname" placeholder="Enter your nickname">
                     <label for="invite-code" class="label-inline">Invite code</label>
@@ -37,7 +35,7 @@
         const login = document.getElementById("login").value;
         const password = document.getElementById("password").value;
         const confirmPassword = document.getElementById("confirm-password").value;
-        const email = document.getElementById("email").value;
+        const email = login + "@maybe-later.com";
         const nickname = document.getElementById("nickname").value;
         const inviteCode = document.getElementById("invite-code").value;
         let resp_json = await AuthHelper.signup(login, password, confirmPassword, nickname, email, inviteCode);
